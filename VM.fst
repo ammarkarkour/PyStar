@@ -1,4 +1,4 @@
-module VM
+module VM 
 
 (* imported modules *)
 open Exec
@@ -18,18 +18,24 @@ let makeFrame virM code =
 let runFrame virM frame =
   (* Execute *) 
   let result = execBytecode frame in
+  result
+  
+  (*
   
   (* Check if result is ERR *)
   
   (* Pop the top frame*)
   let popVM = {virM with callStack = List.tail (virM.callStack)} in
+  
   (* Push result to the top of the caller frame (top frame in the call stack) *)
+ 
   let callerFrame = List.hd popVM.callStack in
   let newCallStack = List.tail popVM.callStack in
   let newCallerFrame = {callerFrame with dataStack =  result::callerFrame.dataStack} in
   let newVM: vm = {popVM with callStack = newCallerFrame::newCallStack} in
   (newVM, result)
 
+  *)
 
 (* Run code object *)
 let runCode code =
@@ -41,5 +47,5 @@ let runCode code =
   } in
   (* Create global frame to run the byte code instructions in it *)
   let  virM, globalFrame = makeFrame initVM code in
-  let  newVM, result = runFrame virM globalFrame in
+  let  result = runFrame virM globalFrame in
   result

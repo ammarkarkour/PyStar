@@ -1,6 +1,17 @@
 module Exec
 
 (*
+   Req: true
+*)
+let check_err dataStack = 
+  match (List.length dataStack) with
+  | 0 -> None
+  | _ ->
+    match (List.hd dataStack) with
+    | ERR(s) -> Some (ERR(s))
+    | _ -> None
+
+(*
    Req: length(datastack) >= 1
 *)
 let return_value dataStack = List.hd dataStack
@@ -40,7 +51,7 @@ let binary_add (dataStack: list pyObj) =
   match (a, b) with
   | INT(a'), INT(b') -> INT(a' + b')::newDataStack
   | STRING(a'), STRING(b') -> STRING(a' ^  b')::newDataStack
-  | _, _ -> All.failwith "Error: binary_Add incompatable types"
+  | _, _ -> ERR("Error: Adding two values of different types")::newDataStack
 
 (*
    Req: len(frame.fcode.bytecode) >= 1
@@ -51,19 +62,32 @@ let rec execBytecode frame =
   | RETURN_VALUE::l -> return_value frame.dataStack
   | LOAD_CONST(i)::l ->
     let newDataStack = load_const i (frame.fCode.co_consts) (frame.dataStack) in
-    execBytecode ({frame with dataStack = newDataStack; fCode = {frame.fCode with co_code = CODE l}})
+    let errCheck = check_err newDataStack in (
+    match errCheck with
+    | Some err -> err
+    | None -> execBytecode ({frame with dataStack = newDataStack; fCode = {frame.fCode with co_code = CODE l}}))
     
   | LOAD_FAST(i)::l ->
     let newDataStack = load_fast i (frame.fCode.co_varnames) (frame.dataStack) in
-    execBytecode ({frame with dataStack = newDataStack; fCode = {frame.fCode with co_code = CODE l}})   
+    let errCheck = check_err newDataStack in (
+    match errCheck with
+    | Some err -> err
+    | None ->  execBytecode ({frame with dataStack = newDataStack; fCode = {frame.fCode with co_code = CODE l}}))   
     
   | STORE_FAST(i)::l ->
     let (newVarnames, newDataStack) = store_fast i (frame.fCode.co_varnames) (frame.dataStack) in
     let newFCode = {frame.fCode with co_code = CODE l; co_varnames = newVarnames} in
-    execBytecode ({frame with dataStack = newDataStack; fCode = newFCode})
+    let errCheck = check_err newDataStack in (
+    match errCheck with
+    | Some err -> err
+    | None -> execBytecode ({frame with dataStack = newDataStack; fCode = newFCode}))
     
   | BINARY_ADD::l -> 
     let newDataStack = binary_add (frame.dataStack) in
-    execBytecode ({frame with dataStack = newDataStack; fCode = {frame.fCode with co_code = CODE l}})
+    let errCheck = check_err newDataStack in (
+    match errCheck with
+    | Some err -> err
+    | None -> execBytecode ({frame with dataStack = newDataStack; fCode = {frame.fCode with co_code = CODE l}}))
+    
   | [] -> All.failwith "Error: reached empty bytecode array "
 

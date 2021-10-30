@@ -4,6 +4,8 @@ module Exec
 open Structs
 (* ---------------- *)
 
+val check_err: list pyObj -> All.ML (option pyObj) 
+
 val return_value: list pyObj -> All.ML pyObj
 
 val load_const: nat -> list pyObj -> list pyObj -> All.ML (list pyObj)

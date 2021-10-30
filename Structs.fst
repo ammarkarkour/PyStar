@@ -16,7 +16,7 @@ noeq type pyObj =
   | INT: int -> pyObj
   | STRING: string -> pyObj
   | NONE
-  | ERR
+  | ERR: string -> pyObj
   
 (* object code *)
 noeq type codeObj = {
@@ -79,3 +79,4 @@ noeq type vm = {
   . 
   *)
 }
+

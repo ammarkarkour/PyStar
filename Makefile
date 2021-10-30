@@ -1,5 +1,7 @@
 #include ../Makefile.include
 # --------------------------------------------------------------------
+FSTAR_HOME = /home/karkour/.fstar/fstar
+
 ifdef FSTAR_HOME
    FSTAR_ULIB=$(FSTAR_HOME)/ulib
 else
@@ -33,7 +35,7 @@ endif
 
 include $(FSTAR_ULIB)/ml/Makefile.include
 
-all: structs exec vm
+all: structs exec vm utils test
 
 vm: out VM.fst
 	$(FSTAR) $(FSTAR_DEFAULT_ARGS) --extract 'VM' --odir out --codegen OCaml VM.fst #--record_hints
@@ -48,11 +50,18 @@ structs: out Structs.fst
 exec: out Exec.fst
 	$(FSTAR) $(FSTAR_DEFAULT_ARGS) --extract 'Exec' --odir out --codegen OCaml Exec.fst #--record_hints
 
+utils: out Utils.fst
+	$(FSTAR) $(FSTAR_DEFAULT_ARGS) --extract 'Utils' --odir out --codegen OCaml Utils.fst #--record_hints
+
+test: out Test.fst
+	$(FSTAR) $(FSTAR_DEFAULT_ARGS) --extract 'Test' --odir out --codegen OCaml Test.fst #--record_hints
+
+
 out:
 	mkdir -p out
 
 ocaml: out/Structs.ml out/Exec.ml out/VM.ml
-	cd out; $(OCAMLOPT) Structs.ml Exec.ml VM.ml -o VM.exe
+	cd out; $(OCAMLOPT) Structs.ml Exec.ml VM.ml Utils.ml Test.ml -o Test.exe
 
 clean:
 	rm -rf out *~ *.exe
