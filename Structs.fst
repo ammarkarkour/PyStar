@@ -2,22 +2,38 @@ module Structs
 
 (* bytecode instruction *)
 type opcode = 
+  | NOP: opcode
+  | POP_TOP: opcode
+  | ROT_TWO: opcode
+  | ROT_THREE: opcode
+  | ROT_FOUR: opcode
+  | DUP_TOP: opcode
+  | DUP_TOP_TWO:opcode
+  | UNARY_POSITIVE: opcode
+  | UNARY_NEGATIVE: opcode
+  | UNARY_NOT: opcode
+  | BINARY_MULTIPLY: opcode
+  | BINARY_FLOOR_DIVIDE: opcode
+  | BINARY_MODULO: opcode
+  | BINARY_ADD: opcode
+  | BINARY_SUBTRACT: opcode
   | LOAD_CONST: nat -> opcode
   | LOAD_FAST: nat -> opcode
   | STORE_FAST: nat -> opcode
-  | BINARY_ADD: opcode
   | RETURN_VALUE: opcode
-  
+
 type bytecode = 
   | CODE: l: list opcode -> bytecode
 
 (* The types of data allowed in datastack*)
 noeq type pyObj =
   | INT: int -> pyObj
+  (*| FLOAT: FStar.Real.real -> pyObj*)
   | STRING: string -> pyObj
+  | BOOL: bool -> pyObj
   | NONE
   | ERR: string -> pyObj
-  
+
 (* object code *)
 noeq type codeObj = {
   co_code: bytecode;
@@ -79,4 +95,3 @@ noeq type vm = {
   . 
   *)
 }
-
