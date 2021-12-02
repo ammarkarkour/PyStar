@@ -35,7 +35,7 @@ endif
 
 include $(FSTAR_ULIB)/ml/Makefile.include
 
-all: structs exec vm utils test
+all: structs utils exec vm test
 
 vm: out VM.fst
 	$(FSTAR) $(FSTAR_DEFAULT_ARGS) --extract 'VM' --odir out --codegen OCaml VM.fst #--record_hints
@@ -61,7 +61,7 @@ out:
 	mkdir -p out
 
 ocaml: out/Structs.ml out/Exec.ml out/VM.ml
-	cd out; $(OCAMLOPT) Structs.ml Exec.ml VM.ml Utils.ml Test.ml -o Test.exe
+	cd out; $(OCAMLOPT) Structs.ml Utils.ml Exec.ml VM.ml Test.ml -o Test.exe
 
 clean:
 	rm -rf out *~ *.exe

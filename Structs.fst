@@ -17,34 +17,28 @@ type opcode =
   | BINARY_MODULO: opcode
   | BINARY_ADD: opcode
   | BINARY_SUBTRACT: opcode
+  | BINARY_SUBSCR: opcode
+  | STORE_NAME: nat -> opcode
   | LOAD_CONST: nat -> opcode
+  | LOAD_NAME: nat -> opcode
+  | BUILD_TUPLE: nat -> opcode
+  | BUILD_LIST: nat -> opcode
+  | JUMP_FORWARD: nat -> opcode
+  | POP_JUMP_IF_TRUE: nat -> opcode
+  | POP_JUMP_IF_FALSE: nat -> opcode
+  (*| JUMP_IF_NOT_EXC_MATCH: nat -> opcode*)
+  | JUMP_IF_TRUE_OR_POP: nat -> opcode
+  | JUMP_IF_FALSE_OR_POP: nat -> opcode
+  | JUMP_ABSOLUTE: nat -> opcode
+  | LOAD_GLOBAL: nat -> opcode
   | LOAD_FAST: nat -> opcode
   | STORE_FAST: nat -> opcode
   | RETURN_VALUE: opcode
+  | CALL_FUNCTION: nat -> opcode
+  | MAKE_FUNCTION: nat -> opcode
 
-type bytecode = 
+noeq type bytecode = 
   | CODE: l: list opcode -> bytecode
-
-(* The types of data allowed in datastack*)
-noeq type pyObj =
-  | INT: int -> pyObj
-  (*| FLOAT: FStar.Real.real -> pyObj*)
-  | STRING: string -> pyObj
-  | BOOL: bool -> pyObj
-  | NONE
-  | ERR: string -> pyObj
-
-(* object code *)
-noeq type codeObj = {
-  co_code: bytecode;
-  co_consts: list pyObj; // elem at index 0 must be None
-  co_varnames: list pyObj
-  (*
-  .
-  .
-  . 
-  *)
-}
 
 (* Block object *)
 noeq type blockObj = {
@@ -56,24 +50,30 @@ noeq type blockObj = {
   b_handler: nat
 }
 
-(* Frame object *)
-noeq type frameObj = {
-  (* Simulates a stack that handles inputs of different types *)
-  dataStack: list pyObj;
-  (* Simulates a stack of blocks*)
-  blockStack: list blockObj;
-  (* code Object that is gonna run in this frame *)
-  fCode: codeObj
-  (*
-  .
-  .
-  . 
-  *)
-}
+(* The types of data allowed in datastack*)
+noeq type pyObj =
+  | INT: int -> pyObj
+  (*| FLOAT: FStar.Real.real -> pyObj*)
+  | STRING: string -> pyObj
+  | BOOL: bool -> pyObj
+  | LIST: list pyObj -> pyObj
+  | TUPLE: list pyObj -> pyObj
+  (*| DICT: Map.t pyObj pyObj -> pyObj*)  
+  | NONE
+  | ERR: string -> pyObj
+  | FUNCTION: functionObj -> pyObj 
+  | CODEOBJECT: codeObj -> pyObj
+  | FRAMEOBJECT: frameObj -> pyObj
 
 (* Function Object *)
-noeq type functionObj = {
-  funCode: bytecode
+and functionObj = {
+  func_Code: pyObj; (* CODEOBJECT *)
+  func_globals: Map.t string pyObj; (* DICT *)
+  func_name: pyObj; (* STRING *)
+  func_closure: pyObj; (* TUPLE *)
+  func_defaults: pyObj; (* TUPLE *)
+  (* func_annotations: pyObj; *) (* DICT *)
+  (* func_kwdefaults: pyObj *) (* DICT *)
   (*
   .
   .
@@ -81,12 +81,49 @@ noeq type functionObj = {
   *)
 } 
 
+(* object code *)
+and codeObj = {
+  co_code: bytecode;
+  co_consts: list pyObj; // elem at index 0 must be None
+  co_varnames: list pyObj;
+  co_names: list pyObj; 
+  (*
+  .
+  .
+  . 
+  *)
+}
+
+(* Frame object *)
+and frameObj = {
+  (* Simulates a stack that handles inputs of different types *)
+  dataStack: list pyObj;
+  (* Simulates a stack of blocks*)
+  blockStack: list blockObj;
+  (* code Object that is gonna run in this frame *)
+  fCode: codeObj;
+  (* bytecode program counter *)
+  pc: nat;
+  (* for fast_load and fast_store *)
+  f_localplus: list pyObj;
+  (* global names *)
+  f_globals: Map.t string pyObj;
+  (* local names *)
+  f_locals: Map.t string pyObj;
+  (* built-in names *)
+  (* f_builtins *)
+  (*
+  .
+  .
+  . 
+  *)
+}
+
+
 (* VM (thread) *)
 noeq type vm = {
   (* Simulates a stack of frames *)
   callStack: list frameObj;
-  (* Simulates a stack of (function name, functionObj) *)
-  functionsEnv: list (string * functionObj);
   (* Input to vm *)
   code: codeObj
   (*
