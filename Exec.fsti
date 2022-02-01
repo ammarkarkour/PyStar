@@ -49,6 +49,8 @@ val build_tuple: nat -> list pyObj -> All.ML (list pyObj)
 
 val build_list: nat -> list pyObj -> All.ML (list pyObj)
 
+val compare_op: nat -> list pyObj -> All.ML (list pyObj)
+  
 val pop_jump_if_true: nat -> nat -> list pyObj -> All.ML (nat * list pyObj)
 
 val pop_jump_if_false: nat -> nat -> list pyObj -> All.ML (nat * list pyObj)

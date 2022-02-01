@@ -23,6 +23,7 @@ type opcode =
   | LOAD_NAME: nat -> opcode
   | BUILD_TUPLE: nat -> opcode
   | BUILD_LIST: nat -> opcode
+  | COMPARE_OP: nat -> opcode
   | JUMP_FORWARD: nat -> opcode
   | POP_JUMP_IF_TRUE: nat -> opcode
   | POP_JUMP_IF_FALSE: nat -> opcode

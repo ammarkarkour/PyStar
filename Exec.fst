@@ -390,6 +390,70 @@ let build_list i dataStack =
   let newDataStack = LIST(elems)::newDataStack in
   newDataStack
 
+let lt_op tos1 tos with
+  match (tos1, tos) with
+  | INT(i1), INT(i2) -> BOOL(i1 < i2)
+  | BOOL(b1), BOOL(b2) -> BOOL(if b1 then false else b2)
+  | BOOL(b), INT(i) -> BOOL(if b then 1<i else 0<i)
+  | INT(i), BOOL(b) -> BOOL(if b then i<1 else i<0)
+  | _, _ -> ERR("Error: '<' not supported between these instances")
+
+let le_op tos1 tos =
+  match (tos1, tos) with
+  | INT(i1), INT(i2) -> BOOL(i1 <= i2)
+  | BOOL(b1), BOOL(b2) -> BOOL(if b1 then b2 else true)
+  | BOOL(b), INT(i) -> BOOL(if b then 1<=i else 0<=i)
+  | INT(i), BOOL(b) -> BOOL(if b then i<=1 else i<=0)
+  | _, _ -> ERR("Error: '<' not supported between these instances")
+
+let eq_op tos1 tos =
+  match (tos1, tos) with
+  | INT(i1), INT(i2) -> BOOL(i1=i2)
+  | BOOL(b1), BOOL(b2) -> BOOL(b1=b2)
+  | BOOL(b), INT(i) -> BOOL(if b then i=1 else i=0)
+  | INT(i), BOOL(b) -> BOOL(if b then i=1 else i=0)  
+  | NONE, NONE -> BOOL(true)
+  | _, _ -> ERR("Error: '==' not supported between these instances")
+
+let neq_op tos1 tos =
+  match (tos1, tos) with
+  | INT(i1), INT(i2) -> BOOL(i1<>i2)
+  | BOOL(b1), BOOL(b2) -> BOOL(b1<>b2)
+  | BOOL(b), INT(i) -> BOOL(if b then i<>1 else i<>0)
+  | INT(i), BOOL(b) -> BOOL(if b then i<>1 else i<>0)  
+  | _, _ -> ERR("Error: '!=' not supported between these instances")
+
+let gt_op tos1 tos with
+  match (tos1, tos) with
+  | INT(i1), INT(i2) -> BOOL(i1 > i2)
+  | BOOL(b1), BOOL(b2) -> BOOL(if b1 then not b2 else false)
+  | BOOL(b), INT(i) -> BOOL(if b then 1>i else 0>i)
+  | INT(i), BOOL(b) -> BOOL(if b then i>1 else i>0)
+  | _, _ -> ERR("Error: '>' not supported between these instances")
+
+let ge_op tos1 tos =
+  match (tos1, tos) with
+  | INT(i1), INT(i2) -> BOOL(i1 >= i2)
+  | BOOL(b1), BOOL(b2) -> BOOL(if b1 then true else not b2)
+  | BOOL(b), INT(i) -> BOOL(if b then 1>=i else 0>=i)
+  | INT(i), BOOL(b) -> BOOL(if b then i>=1 else i>=0)
+  | _, _ -> ERR("Error: '>=' not supported between these instances")
+
+(*
+*)
+let compare_op i dataStack = 
+  let tos = List.hd dataStack in
+  let tos1 = List.nth dataStack 1 in
+  let (_, newDataStack) = List.splitAt 2 dataStack in
+  match i with
+  | 0 -> (lt_op tos1 tos)::newDataStack
+  | 1 -> (le_op tos1 tos)::newDataStack
+  | 2 -> (eq_op tos1 tos)::newDataStack
+  | 3 -> (neq_op tos1 tos)::newDataStack
+  | 4 -> (gt_op tos1 tos)::newDataStack
+  | 5 -> (ge_op tos1 tos)::newDataStack
+  | _ -> (ERR "ERR: compare_op is not supported yet")::newDataStack
+
 (*
   Req:
   Ens:
