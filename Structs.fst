@@ -50,36 +50,42 @@ noeq type blockObj = {
   (* The index of the instruction after the block *)
   b_handler: nat
 }
+  
+(* 
+   - The main purpose of using pyObj is to trick 
+     the typing system into accepting the type wihtout
+     satisfying the positivity condition.
 
-(* The types of data allowed in datastack*)
-noeq type pyObj =
-  | INT: int -> pyObj
-  (*| FLOAT: FStar.Real.real -> pyObj*)
-  | STRING: string -> pyObj
-  | BOOL: bool -> pyObj
-  | LIST: list pyObj -> pyObj
-  | TUPLE: list pyObj -> pyObj
-  (*| DICT: Map.t pyObj pyObj -> pyObj*)  
+   - The main reason of having X as constructor is to
+     be ablt to create empty mappings.
+
+   - Any type/object that is python accessable is an object
+     of the record type0 wraped inside the TYP constructor.
+     Some functions are provided to create objects of
+     the builtin types. int, string, list, tuple    
+   - Types that are jsut interprter representations, are 
+     also included. eg: CODEobj and Frameobj.
+*)
+noeq type builtins = 
+  | INT: int -> builtins
+  | STRING: string -> builtins
+  | BOOL: bool -> builtins
+  | LIST: list pyObj  -> builtins
+  | TUPLE: list pyObj -> builtins  
   | NONE
-  | ERR: string -> pyObj
-  | FUNCTION: functionObj -> pyObj 
+  
+and pyObj = 
+  | TYP: type0 -> pyObj
   | CODEOBJECT: codeObj -> pyObj
   | FRAMEOBJECT: frameObj -> pyObj
-
-(* Function Object *)
-and functionObj = {
-  func_Code: pyObj; (* CODEOBJECT *)
-  func_globals: Map.t string pyObj; (* DICT *)
-  func_name: pyObj; (* STRING *)
-  func_closure: pyObj; (* TUPLE *)
-  func_defaults: pyObj; (* TUPLE *)
-  (* func_annotations: pyObj; *) (* DICT *)
-  (* func_kwdefaults: pyObj *) (* DICT *)
-  (*
-  .
-  .
-  . 
-  *)
+  |  ERR: string -> pyObj
+  
+and type0 = {
+  name: string;
+  pid: int;
+  value: builtins;
+  fields: Map.t string pyObj;
+  methods: Map.t string pyObj
 } 
 
 (* object code *)
@@ -88,48 +94,149 @@ and codeObj = {
   co_consts: list pyObj; // elem at index 0 must be None
   co_varnames: list pyObj;
   co_names: list pyObj; 
-  (*
-  .
-  .
-  . 
-  *)
 }
 
 (* Frame object *)
 and frameObj = {
-  (* Simulates a stack that handles inputs of different types *)
+ 
   dataStack: list pyObj;
-  (* Simulates a stack of blocks*)
   blockStack: list blockObj;
-  (* code Object that is gonna run in this frame *)
   fCode: codeObj;
-  (* bytecode program counter *)
   pc: nat;
-  (* for fast_load and fast_store *)
   f_localplus: list pyObj;
-  (* global names *)
   f_globals: Map.t string pyObj;
-  (* local names *)
   f_locals: Map.t string pyObj;
   (* built-in names *)
   (* f_builtins *)
-  (*
-  .
-  .
-  . 
-  *)
 }
 
+private let emptyMap: Map.t string pyObj  = Map.const_on (Set.empty) (ERR("UNDEFINED"))
+
+(* *)
+let createInt (v:int) = 
+  let obj: type0= {
+    name = "int";
+    pid = 0;
+    value = INT(v);
+    fields = emptyMap;
+    methods = emptyMap
+  } in
+  TYP(obj)
 
 (* VM (thread) *)
 noeq type vm = {
-  (* Simulates a stack of frames *)
   callStack: list frameObj;
-  (* Input to vm *)
   code: codeObj
-  (*
-  .
-  .
-  . 
-  *)
 }
+
+let five = createInt 5
+
+let r:builtins =
+  match five with
+  | TYP(c) -> c.value
+  | _ -> NONE
+ 
+
+
+
+(* --------------------------------------------------------------------------- *)
+
+
+
+
+// let emptyMap = Map.const_on (Set.empty) NONE
+
+// type int0 = {id="int"; fields = emptyMap; methods=emptyMap}
+
+// let r = {id="int"; fields = emptyMap; methods=emptyMap}
+
+// let u = int0.id
+// let y = r.id
+
+// let int0: pyObj = 
+//   let obj:type0 = {id="int"; fields = emptyMap; methods=emptyMap} in
+//   INT(obj)
+
+
+// (* The types of data allowed in datastack*)
+// noeq type pyObj =
+//   | INT: int -> pyObj
+//   (*| FLOAT: FStar.Real.real -> pyObj*)
+//   | STRING: string -> pyObj
+//   | BOOL: bool -> pyObj
+//   | LIST: list pyObj -> pyObj
+//   | TUPLE: list pyObj -> pyObj
+//   (*| DICT: Map.t pyObj pyObj -> pyObj*)  
+//   | NONE
+//   | ERR: string -> pyObj
+//   | FUNCTION: functionObj -> pyObj 
+//   | CODEOBJECT: codeObj -> pyObj
+//   | FRAMEOBJECT: frameObj -> pyObj
+
+// (* Function Object *)
+// and functionObj = {
+//   func_Code: pyObj; (* CODEOBJECT *)
+//   func_globals: Map.t string pyObj; (* DICT *)
+//   func_name: pyObj; (* STRING *)
+//   func_closure: pyObj; (* TUPLE *)
+//   func_defaults: pyObj; (* TUPLE *)
+//   (* func_annotations: pyObj; *) (* DICT *)
+//   (* func_kwdefaults: pyObj *) (* DICT *)
+//   (*
+//   .
+//   .
+//   . 
+//   *)
+// } 
+
+// (* object code *)
+// and codeObj = {
+//   co_code: bytecode;
+//   co_consts: list pyObj; // elem at index 0 must be None
+//   co_varnames: list pyObj;
+//   co_names: list pyObj; 
+//   (*
+//   .
+//   .
+//   . 
+//   *)
+// }
+
+// (* Frame object *)
+// and frameObj = {
+//   (* Simulates a stack that handles inputs of different types *)
+//   dataStack: list pyObj;
+//   (* Simulates a stack of blocks*)
+//   blockStack: list blockObj;
+//   (* code Object that is gonna run in this frame *)
+//   fCode: codeObj;
+//   (* bytecode program counter *)
+//   pc: nat;
+//   (* for fast_load and fast_store *)
+//   f_localplus: list pyObj;
+//   (* global names *)
+//   f_globals: Map.t string pyObj;
+//   (* local names *)
+//   f_locals: Map.t string pyObj;
+//   (* built-in names *)
+//   (* f_builtins *)
+//   (*
+//   .
+//   .
+//   . 
+//   *)
+// }
+
+
+// (* VM (thread) *)
+// noeq type vm = {
+//   (* Simulates a stack of frames *)
+//   callStack: list frameObj;
+//   (* Input to vm *)
+//   code: codeObj
+//   (*
+//   .
+//   .
+//   . 
+//   *)
+//}
