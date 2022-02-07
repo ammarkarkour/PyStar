@@ -76,9 +76,11 @@ noeq type builtins =
   
 and pyObj = 
   | TYP: type0 -> pyObj
+  | BINFUN: (builtins * builtins -> builtins) -> pyObj
+  | UNFUN: (builtins -> builtins) -> pyObj
   | CODEOBJECT: codeObj -> pyObj
   | FRAMEOBJECT: frameObj -> pyObj
-  |  ERR: string -> pyObj
+  | ERR: string -> pyObj
   
 and type0 = {
   name: string;
@@ -98,7 +100,6 @@ and codeObj = {
 
 (* Frame object *)
 and frameObj = {
- 
   dataStack: list pyObj;
   blockStack: list blockObj;
   fCode: codeObj;
@@ -119,9 +120,17 @@ let createInt (v:int) =
     pid = 0;
     value = INT(v);
     fields = emptyMap;
-    methods = emptyMap
+    methods = Map.upd emptyMap "+" 
+      (BINFUN (fun (a, b) -> match (a, b) with 
+                          | INT(a), INT(b) -> INT(a + b) 
+                          | _ -> NONE))
   } in
   TYP(obj)
+
+let builtinsToPyObj (bltin: builtins) = 
+  match bltin with
+  | INT n -> createInt n
+  | _ -> All.failwith "TODO"
 
 (* VM (thread) *)
 noeq type vm = {

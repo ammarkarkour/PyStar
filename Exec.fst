@@ -254,6 +254,11 @@ let binary_add (dataStack: list pyObj) =
   let tos1 = List.nth dataStack 1 in
   let (_, newDataStack) = List.splitAt 2 dataStack in 
   match (tos, tos1) with
+  | TYP(obj1), TYP(obj2) -> match obj1.methods."+" with
+                           | BINFUN f -> match f (obj1.value, obj2.value) with
+                                        | bltin -> builtinsToPyObj bltin
+                                        | NONE -> ERR ("Cannot add objects.")::newDataStack
+                           | _ -> (* No add method *)
   | INT(a), INT(b) -> INT(b + a)::newDataStack
   | BOOL(b1), BOOL(b2) -> INT(if b1&&b2 then 2 else if b1||b2 then 1 else 0)::newDataStack
   | BOOL(b1), INT(i) -> INT(if b1 then 1+i else  0+i)::newDataStack
