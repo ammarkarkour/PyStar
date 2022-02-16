@@ -1,6 +1,6 @@
 #include ../Makefile.include
 # --------------------------------------------------------------------
-#FSTAR_HOME = /home/karkour/.fstar/fstar
+FSTAR_HOME = /home/karkour/.fstar/fstar
 
 ifdef FSTAR_HOME
    FSTAR_ULIB=$(FSTAR_HOME)/ulib

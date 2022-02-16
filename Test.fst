@@ -14,8 +14,9 @@ let bc1 = CODE [
 
 let co_test1 = {
   co_code = bc1;
-  co_consts = [NONE; INT 3];
-  co_varnames = []
+  co_consts = [createNone; createInt 3];
+  co_varnames = [];
+  co_names = []
 }
 
 (* Test case 2 *)
@@ -37,12 +38,12 @@ let bc2 = CODE [
 
 let co_test2 = {
   co_code = bc2;
-  co_consts = [NONE; INT 1; INT 2];
-  co_varnames = [STRING "x"; STRING "y"; STRING "Z"]
+  co_consts = [createNone; createInt 1; createInt 2];
+  co_varnames = ["x"; "y"; "Z"];
+  co_names = []
 }
 
 
 let res = runCode co_test2
 
 let p = print_pyObj res
-  

@@ -1,6 +1,7 @@
 module VM
 
 (* imported modules *)
+open Utils
 open Structs
 open Exec
 (* ---------------- *)

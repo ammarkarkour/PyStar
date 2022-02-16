@@ -15,15 +15,18 @@ let check_err dataStack =
     | ERR(s) -> Some (ERR(s))
     | _ -> None
     
-let rec print_pyObj p: All.ML string =
+let rec print_pyObj (p:pyObj): All.ML string =
   match p with
-  | INT i -> Printf.sprintf "INT: %d" i
-  | STRING s -> Printf.sprintf "STRING: %s" s
-  | BOOL b ->  Printf.sprintf "BOOL: %b" b
-  | LIST l -> List.fold_right (fun a b -> a ^ " " ^ b) (List.map print_pyObj l) ""
-  | TUPLE l -> List.fold_right (fun a b -> a ^ " " ^ b) (List.map print_pyObj l) ""
-  | NONE -> Printf.sprintf "NONE"
   | ERR s -> Printf.sprintf "ERR: %s" s
+  | TYP obj ->
+   (match obj.value with
+    | INT i -> Printf.sprintf "INT: %d" i
+    | STRING s -> Printf.sprintf "STRING: %s" s
+    | BOOL b ->  Printf.sprintf "BOOL: %b" b
+    | LIST l -> List.fold_right (fun a b -> a ^ " " ^ b) (List.map print_pyObj l) ""
+    | TUPLE l -> List.fold_right (fun a b -> a ^ " " ^ b) (List.map print_pyObj l) ""
+    | NONE -> Printf.sprintf "NONE"
+    | _ -> Printf.sprintf "Not printable")
   | _ -> Printf.sprintf "Not printable"
 
 let rec subString_pos' (cl: list String.char) (i: int): All.ML (option String.char) =
@@ -45,3 +48,35 @@ let rec tabulate' (#a:Type) (f: nat -> a) (i: nat): list a =
 
 let rec tabulate (#a:Type) (f: nat -> a) (i: nat): list a =
   List.rev (tabulate' f i)
+
+(* Helper functions to create objects of builtin type *)
+let emptyMap: Map.t string pyObj  = Map.const (ERR("UNDEFINED"))
+
+let createInt (v:int) =
+  let obj: type0= {
+    name = "int";
+    pid = 0;
+    value = INT(v);
+    fields = emptyMap;
+    methods = Map.upd emptyMap "+" 
+      (BINFUN (fun (a, b) -> match (a, b) with 
+                          | INT(a), INT(b) -> INT(a + b) 
+                          | _ -> NONE))
+  } in
+  TYP(obj)
+
+let createNone = 
+  let obj: type0= {
+    name = "NoneType";
+    pid = 0;
+    value = NONE;
+    fields = emptyMap;
+    methods = emptyMap
+  } in
+  TYP(obj)
+
+
+let builtinsToPyObj (bltin: builtins) = 
+  match bltin with
+  | INT n -> createInt n
+  | _ -> All.failwith "TODO"
