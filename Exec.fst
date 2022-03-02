@@ -1,5 +1,17 @@
 module Exec
 
+let builtinsToPyObj (bltin: builtins) = 
+  match bltin with
+  | INT n -> createInt n
+  | STRING s -> createString s
+  | BOOL b -> createBool b
+  | LIST l -> createList l
+  | TUPLE t -> createTuple t
+  | DICT kvl -> createDict kvl 
+  | FUNCTION f -> createFunction f
+  | NONE -> createNone
+
+ 
 (*
 Notaion: 
   - tos means top of stack (i.e., datastack[0])
@@ -28,7 +40,27 @@ let makeFrame virM code localplus global_names local_names =
   let newVM: vm = {virM with callStack = frame::(virM.callStack)} in
   (newVM, frame)
 
-  
+(*
+  Req:
+  Ens:
+*)
+let call_function i globals dataStack =
+  let args, newDataStack = List.splitAt i dataStack in
+  let localplus = List.Tot.Base.rev args in
+  let code, newDataStack = List.splitAt 1 newDataStack in
+  match List.hd code with
+  | CODEOBJECT co ->  
+    let newFrame: frameObj = {
+      dataStack = []; 
+      blockStack = [];
+      fCode = co;
+      f_localplus = localplus;
+      pc = 0;
+      f_globals = globals;
+      f_locals = emptyMap
+    } in (FRAMEOBJECT newFrame)::dataStack
+  | _ -> All.failwith "CALL_FUNCTION: didn't call a function object"
+
 (*
    Req: length(datastack) >= 1
    Ens: res = datastack[1:]
@@ -85,6 +117,115 @@ let dup_top_two datastack =
   let tos1 = List.nth datastack 1 in
   tos::tos1::datastack
 
+(*
+   Req: length(datastack) >= 1
+   Ens:
+*)
+let unary_positive datastack = 
+  let tos = List.hd datastack in
+  let newDataStack = List.tail datastack in
+  match tos with
+  | PYTYP(OBJ(obj)) -> 
+    (match (Map.sel (obj.methods) "__pos__") with
+    | UNFUN f -> 
+      (match f (OBJ obj) with
+      | NONE -> ERR("Can't positive  " ^ obj.name)::newDataStack 
+      | bltin -> (builtinsToPyObj bltin)::newDataStack)
+    | err -> err::newDataStack)
+  | _ -> ERR("Cannot positive non-objects")::newDataStack
+  
+(*
+   Req: length(datastack) >= 1
+   Ens:
+*)
+let unary_negative datastack = 
+  let tos = List.hd datastack in
+  let newDataStack = List.tail datastack in
+  match tos with
+  | PYTYP(OBJ(obj)) -> 
+    (match (Map.sel (obj.methods) "__neg__") with
+    | UNFUN f -> 
+      (match f (OBJ obj) with
+      | NONE -> ERR("Can't negate  " ^ obj.name)::newDataStack 
+      | bltin -> (builtinsToPyObj bltin)::newDataStack)
+    | err -> err::newDataStack)
+  | _ -> ERR("Cannot negate non-objects")::newDataStack
+
+(*
+   Req: length(datastack) >= 1
+   Ens:
+*)
+let unary_not datastack = 
+  let tos = List.hd datastack in
+  let newDataStack = List.tail datastack in
+  match tos with
+  | PYTYP(OBJ(obj)) ->
+    let res = 
+      (match obj.value with
+      | INT i -> if i=0 then true else false
+      | STRING s -> if s="" then true else false
+      | BOOL b -> if b then false else true
+      | LIST l -> (match l with [] -> true | _ -> false)
+      | TUPLE t -> (match t with [] -> true | _ -> false)
+      | DICT kvl -> (match kvl with [] -> true | _ -> false)
+      | FUNCTION f -> false
+      | NONE -> true) in (createBool res)::newDataStack
+  | _ -> ERR("Cannot logically negate non-objects")::newDataStack
+  
+(*
+  Req: length(datastack) >= 2
+  Ens: 
+*)
+let binary_multiply (dataStack: list pyObj) = 
+  let tos = List.hd dataStack in
+  let tos1 = List.nth dataStack 1 in
+  let (_, newDataStack) = List.splitAt 2 dataStack in 
+  match (tos, tos1) with
+  | PYTYP(OBJ(obj1)), PYTYP(OBJ(obj2)) -> 
+    (match (Map.sel (obj1.methods) "__mul__") with
+    | BINFUN f -> 
+      (match f (OBJ obj1, OBJ obj2) with
+      | NONE -> ERR("Cannot multiply " ^ obj1.name ^ " and " ^ obj2.name)::newDataStack 
+      | bltin -> (builtinsToPyObj bltin)::newDataStack)
+    | err -> err::newDataStack)
+  | _, _ -> ERR("Cannot multiply non-objects")::newDataStack
+
+(*
+  Req: length(datastack) >= 2
+  Ens: 
+*)
+let binary_floor_divide (dataStack: list pyObj) = 
+  let tos = List.hd dataStack in
+  let tos1 = List.nth dataStack 1 in
+  let (_, newDataStack) = List.splitAt 2 dataStack in 
+  match (tos, tos1) with
+  | PYTYP(OBJ(obj1)), PYTYP(OBJ(obj2)) -> 
+    (match (Map.sel (obj1.methods) "__floordiv__") with
+    | BINFUN f -> 
+      (match f (OBJ obj1, OBJ obj2) with
+      | NONE -> ERR("Cannot floor-divide " ^ obj1.name ^ " and " ^ obj2.name)::newDataStack 
+      | bltin -> (builtinsToPyObj bltin)::newDataStack)
+    | err -> err::newDataStack)
+  | _, _ -> ERR("Cannot floor-divide non-objects")::newDataStack
+
+(*
+  Req: length(datastack) >= 2
+  Ens: 
+*)
+let binary_modulo (dataStack: list pyObj) = 
+  let tos = List.hd dataStack in
+  let tos1 = List.nth dataStack 1 in
+  let (_, newDataStack) = List.splitAt 2 dataStack in 
+  match (tos, tos1) with
+  | PYTYP(OBJ(obj1)), PYTYP(OBJ(obj2)) -> 
+    (match (Map.sel (obj1.methods) "__mod__") with
+    | BINFUN f -> 
+      (match f (OBJ obj1, OBJ obj2) with
+      | NONE -> ERR("Cannot mod " ^ obj1.name ^ " and " ^ obj2.name)::newDataStack
+      | bltin -> (builtinsToPyObj bltin)::newDataStack)
+    | err -> err::newDataStack)
+  | _, _ -> ERR("Cannot mod non-objects")::newDataStack
+
 
 (*
   Req: length(datastack) >= 2
@@ -95,14 +236,117 @@ let binary_add (dataStack: list pyObj) =
   let tos1 = List.nth dataStack 1 in
   let (_, newDataStack) = List.splitAt 2 dataStack in 
   match (tos, tos1) with
-  | TYP(obj1), TYP(obj2) -> 
-    (match (Map.sel (obj1.methods) "+") with
+  | PYTYP(OBJ(obj1)), PYTYP(OBJ(obj2)) -> 
+    (match (Map.sel (obj1.methods) "__add__") with
     | BINFUN f -> 
-      (match f (obj1.value, obj2.value) with
-      | bltin -> (builtinsToPyObj bltin)::newDataStack
-      | NONE -> ERR("Cannot add objects" ^ obj1.name ^ obj2.name)::newDataStack)
+      (match f (OBJ obj1, OBJ obj2) with
+      | NONE -> ERR("Cannot add " ^ obj1.name ^ " and " ^ obj2.name)::newDataStack
+      | bltin -> (builtinsToPyObj bltin)::newDataStack)
     | err -> err::newDataStack)
-  | _, _ -> ERR("Cannot add non objects")::newDataStack
+  | _, _ -> ERR("Cannot add non-objects")::newDataStack
+
+
+(*
+  Req: length(datastack) >= 2
+  Ens: 
+*)
+let binary_subtract (dataStack: list pyObj) = 
+  let tos = List.hd dataStack in
+  let tos1 = List.nth dataStack 1 in
+  let (_, newDataStack) = List.splitAt 2 dataStack in 
+  match (tos, tos1) with
+  | PYTYP(OBJ(obj1)), PYTYP(OBJ(obj2)) -> 
+    (match (Map.sel (obj1.methods) "__sub__") with
+    | BINFUN f -> 
+      (match f (OBJ obj1, OBJ obj2) with
+      | NONE -> ERR("Cannot subtract " ^ obj1.name ^ " and " ^ obj2.name)::newDataStack
+      | bltin -> (builtinsToPyObj bltin)::newDataStack)
+    | err -> err::newDataStack)
+  | _, _ -> ERR("Cannot subtract non-objects")::newDataStack
+
+
+(*
+  Req: length(datastack) >= 2
+  Ens: 
+*)
+let binary_subscr (dataStack: list pyObj) = 
+  let tos = List.hd dataStack in
+  let tos1 = List.nth dataStack 1 in
+  let (_, newDataStack) = List.splitAt 2 dataStack in 
+  match (tos1, tos) with
+  | PYTYP(OBJ(obj1)), PYTYP(OBJ(obj2)) -> 
+    (match (Map.sel (obj1.methods) "__subscr__") with
+    | BINFUN f ->
+      (match f (OBJ obj1, OBJ obj2) with
+      | NONE -> ERR("Cannot subscript " ^ obj1.name ^ " and " ^ obj2.name)::newDataStack 
+      | bltin -> (builtinsToPyObj bltin)::newDataStack)
+    | err -> err::newDataStack)
+  | _, _ -> ERR("Cannot subscript non-objects")::newDataStack
+
+
+(*
+  Req: (length(datastack) >= i)
+  Ens:
+*)
+let build_tuple i dataStack =
+  let elems, newDataStack  = List.splitAt i dataStack in
+  let newDataStack = createTuple(List.map pyObjTopyTyp elems)::newDataStack in
+  newDataStack
+
+(*
+  Req: (length(datastack) >= i)
+  Ens:
+*)
+let build_list i dataStack =
+  let elems, newDataStack  = List.splitAt i dataStack in
+  let newDataStack = createList(List.map pyObjTopyTyp elems)::newDataStack in
+  newDataStack
+
+(*
+  Req:
+  Ens:
+*)
+let compare_op i dataStack = 
+  let tos = List.hd dataStack in
+  let tos1 = List.nth dataStack 1 in
+  let (_, newDataStack) = List.splitAt 2 dataStack in
+  let op =
+    match i with
+    | 0 -> "__lt__"
+    | 1 -> "__le__"
+    | 2 -> "__eq__"
+    | 3 -> "__ne__"
+    | 4 -> "__gt__"
+    | 5 -> "__ge__"
+    | 6 -> "__contains__" (* in *)
+    | 7 -> "__contains__" (* not in*)
+    | 8 -> "__is__"
+    | 9 -> "__nis__"
+    | _ -> "error" in
+  match op with
+  | "__is__" ->
+    (match (tos1, tos) with
+    | PYTYP(OBJ(obj1)), PYTYP(OBJ(obj2)) -> createBool(obj1.pid = obj2.pid)::newDataStack
+    | _ -> (ERR "Cannot compare non-object")::newDataStack) 
+  | "__nis__" ->
+    (match (tos1, tos) with
+    | PYTYP(OBJ(obj1)), PYTYP(OBJ(obj2)) -> createBool(obj1.pid <> obj2.pid)::newDataStack
+    | _ -> (ERR "Cannot compare non-object")::newDataStack)
+  | "error" -> (ERR "Compare_op is not supported")::newDataStack
+  | _ ->
+    match (tos1, tos) with
+    | PYTYP(OBJ(obj1)), PYTYP(OBJ(obj2)) -> 
+      (match (Map.sel (obj1.methods) op) with
+      | BINFUN f -> 
+        (match f (OBJ obj1, OBJ obj2) with
+        | NONE ->
+          (match i with 
+          | 2 -> (createBool false)::newDataStack
+          | 3 -> (createBool false)::newDataStack
+          | _ -> ERR("Cannot compare " ^ obj1.name ^ " and " ^ obj2.name)::newDataStack)
+        | bltin -> (builtinsToPyObj bltin)::newDataStack)
+      | err -> err::newDataStack)
+    | _, _ -> ERR("Cannot compare non-objects")::newDataStack
 
 (*
   Req:
@@ -137,7 +381,63 @@ let load_name i names f_locals f_globals dataStack =
      (match Map.contains f_globals name with
       | true -> (Map.sel f_locals name)::dataStack
       | false -> (ERR ("name: " ^ name ^ "is not defined"))::dataStack)
- 
+
+(*
+  Req:
+  Ens:
+*)
+let pop_jump_if_true i pc dataStack =
+  let tos = List.hd dataStack in
+  let newDataStack = List.tail dataStack in
+  match tos with
+  | PYTYP(OBJ(obj)) ->
+    (match obj.value with
+    | BOOL b -> if b then (i/2, newDataStack) else (pc, newDataStack)
+    | _ -> (pc, (ERR "ERR: argument is not a Bool")::newDataStack))
+  | _ -> (pc, (ERR "ERR: argument is not an object")::newDataStack)
+
+(*
+  Req:
+  Ens:
+*)
+let pop_jump_if_false i pc dataStack =
+  let tos = List.hd dataStack in
+  let newDataStack = List.tail dataStack in
+  match tos with
+  | PYTYP(OBJ(obj)) ->
+    (match obj.value with
+    | BOOL b -> if b then (pc, newDataStack) else (i/2, newDataStack)
+    | _ -> (pc, (ERR "ERR: argument is not a Bool")::newDataStack))
+  | _ -> (pc, (ERR "ERR: argument is not an object")::newDataStack)
+
+(*
+  Req:
+  Ens:
+*)
+let jump_if_true_or_pop i pc dataStack =
+  let tos = List.hd dataStack in
+  let newDataStack = List.tail dataStack in
+  match tos with
+  | PYTYP(OBJ(obj)) ->
+    (match obj.value with
+    | BOOL b -> if b then (i/2, dataStack) else (pc, newDataStack)
+    | _ -> (pc, (ERR "ERR: argument is not a Bool")::newDataStack))
+  | _ -> (pc, (ERR "ERR: argument is not an object")::newDataStack)
+
+(*
+  Req:
+  Ens:
+*)
+let jump_if_false_or_pop i pc dataStack =
+  let tos = List.hd dataStack in
+  let newDataStack = List.tail dataStack in
+  match tos with
+  | PYTYP(OBJ(obj)) ->
+    (match obj.value with
+    | BOOL b -> if b then (pc, newDataStack) else (i/2, dataStack)
+    | _ -> (pc, (ERR "ERR: argument is not a Bool")::newDataStack))
+  | _ -> (pc, (ERR "ERR: argument is not an object")::newDataStack)
+
 (*
   Req:
   Ens:
@@ -174,7 +474,41 @@ let store_fast i localplus dataStack =
          (let newLocalPlus = List.append localplus [tos] in
            (newLocalPlus, newDataStack)) 
        | false -> All.failwith "STORE_FAST: storing out of index")
-     
+
+(*
+  Req:
+  Ens:
+*)
+let make_function flags globs dataStack =
+  let qualname = List.hd dataStack in
+  let codeobj = List.nth dataStack 1 in
+  let (_, newDataStack) = List.splitAt 2 dataStack in
+  let func = createFunction ({
+    func_Code = codeobj;
+    func_globals = globs;
+    func_name = qualname;
+    func_closure =
+      if flags = 8 then
+      (match List.hd newDataStack with
+       | PYTYP(OBJ(obj)) ->
+         (match obj.value with
+           | TUPLE(t) -> createTuple t
+           | _ -> ERR "Expected closure tuple, got someting else")
+       | _ -> ERR "Expected closure tuple, got someting else") else createNone;
+   
+    func_defaults =
+      if flags = 1 then
+      (match  List.hd newDataStack with
+      | PYTYP(OBJ(obj)) ->
+         (match obj.value with
+           | TUPLE(t) -> createTuple t
+           | _ -> ERR "Expected a defaults tuple, got someting else")
+       | _ -> ERR "Expected a defaults tuple, got someting else") else createNone;
+  }) in
+    (match flags with
+     | 0 -> func::newDataStack
+     | _ -> func::(List.tail newDataStack))
+
 (*
    Req: len(frame.fcode.bytecode) >= 1
 *)
@@ -186,6 +520,9 @@ let rec execBytecode frame =
     let CODE(bc) = frame.fCode.co_code in
     match List.nth bc (frame.pc) with
     | RETURN_VALUE -> frame
+    | CALL_FUNCTION i -> 
+      let newDataStack = call_function i (frame.f_globals) frame.dataStack in
+        ({frame with dataStack = newDataStack})
     | NOP -> execBytecode ({frame with pc = frame.pc+1})
     | POP_TOP ->
       let newDataStack = pop_top frame.dataStack in
@@ -205,18 +542,66 @@ let rec execBytecode frame =
     | DUP_TOP_TWO ->
       let newDataStack = dup_top_two frame.dataStack in
         execBytecode ({frame with dataStack = newDataStack; pc = frame.pc+1})
+    | UNARY_POSITIVE ->
+      let newDataStack = unary_positive frame.dataStack in
+        execBytecode ({frame with dataStack = newDataStack; pc = frame.pc+1})
+    | UNARY_NEGATIVE ->
+      let newDataStack = unary_negative frame.dataStack in
+        execBytecode ({frame with dataStack = newDataStack; pc = frame.pc+1})
+    | UNARY_NOT ->
+      let newDataStack = unary_not frame.dataStack in
+        execBytecode ({frame with dataStack = newDataStack; pc = frame.pc+1})
+    | BINARY_MULTIPLY -> 
+      let newDataStack = binary_multiply (frame.dataStack) in
+        execBytecode ({frame with dataStack = newDataStack; pc = frame.pc+1})
+    | BINARY_FLOOR_DIVIDE -> 
+      let newDataStack = binary_floor_divide (frame.dataStack) in
+        execBytecode ({frame with dataStack = newDataStack; pc = frame.pc+1})    
+    | BINARY_MODULO -> 
+      let newDataStack = binary_modulo (frame.dataStack) in
+        execBytecode ({frame with dataStack = newDataStack; pc = frame.pc+1})
     | BINARY_ADD -> 
       let newDataStack = binary_add (frame.dataStack) in
-        execBytecode ({frame with dataStack = newDataStack; pc = frame.pc+1})
-    | STORE_NAME(i) ->
-      let newLocals, newDataStack = store_name i (frame.fCode.co_names) (frame.f_locals) (frame.dataStack) in
-        execBytecode ({frame with dataStack = newDataStack; pc = frame.pc+1; f_locals = newLocals})
+        execBytecode ({frame with dataStack = newDataStack; pc = frame.pc+1})    
+    | BINARY_SUBTRACT -> 
+      let newDataStack = binary_subtract (frame.dataStack) in
+        execBytecode ({frame with dataStack = newDataStack; pc = frame.pc+1}) 
+    | BINARY_SUBSCR -> 
+      let newDataStack = binary_subtract (frame.dataStack) in
+        execBytecode ({frame with dataStack = newDataStack; pc = frame.pc+1}) 
     | LOAD_CONST(i) ->
       let newDataStack = load_const i (frame.fCode.co_consts) (frame.dataStack) in
         execBytecode ({frame with dataStack = newDataStack; pc = frame.pc+1})
     | LOAD_NAME(i) ->
       let newDataStack = load_name i (frame.fCode.co_names) (frame.f_locals) (frame.f_globals) (frame.dataStack) in
         execBytecode ({frame with dataStack = newDataStack; pc = frame.pc+1})
+    | BUILD_TUPLE(i) ->
+      let newDataStack = build_tuple i (frame.dataStack) in
+        execBytecode ({frame with dataStack = newDataStack; pc = frame.pc+1})
+    | STORE_NAME(i) ->
+      let newLocals, newDataStack = store_name i (frame.fCode.co_names) (frame.f_locals) (frame.dataStack) in
+        execBytecode ({frame with dataStack = newDataStack; pc = frame.pc+1; f_locals = newLocals})
+    |  BUILD_LIST(i) ->
+      let newDataStack = build_list i (frame.dataStack) in
+        execBytecode ({frame with dataStack = newDataStack; pc = frame.pc+1})
+    | JUMP_FORWARD(i) -> execBytecode ({frame with pc = frame.pc + (i/2) + 1})
+    | POP_JUMP_IF_TRUE(i) ->
+      let newPc, newDataStack = pop_jump_if_true i (frame.pc) (frame.dataStack) in
+      let newPc = if frame.pc=newPc then newPc+1 else newPc in
+        execBytecode ({frame with dataStack = newDataStack; pc = newPc})
+    | POP_JUMP_IF_FALSE(i) ->
+      let newPc, newDataStack = pop_jump_if_false i (frame.pc) (frame.dataStack) in
+      let newPc = if frame.pc=newPc then newPc+1 else newPc in
+        execBytecode ({frame with dataStack = newDataStack; pc = newPc})
+    | JUMP_IF_TRUE_OR_POP(i) ->
+      let newPc, newDataStack = jump_if_true_or_pop i (frame.pc) (frame.dataStack) in
+      let newPc = if frame.pc=newPc then newPc+1 else newPc in
+        execBytecode ({frame with dataStack = newDataStack; pc = newPc})
+    | JUMP_IF_FALSE_OR_POP(i) ->
+      let newPc, newDataStack = jump_if_false_or_pop i (frame.pc) (frame.dataStack) in
+      let newPc = if frame.pc=newPc then newPc+1 else newPc in
+        execBytecode ({frame with dataStack = newDataStack; pc = newPc})
+    | JUMP_ABSOLUTE(i) -> execBytecode ({frame with pc = i/2})
     | LOAD_GLOBAL(i) ->
       let newDataStack = load_global i (frame.fCode.co_names) (frame.f_globals) (frame.dataStack) in
         execBytecode ({frame with dataStack = newDataStack; pc = frame.pc+1})
@@ -226,9 +611,11 @@ let rec execBytecode frame =
     | STORE_FAST(i) ->
       let newLocalPlus, newDataStack = store_fast i (frame.f_localplus) (frame.dataStack) in
         execBytecode ({frame with dataStack = newDataStack; pc = frame.pc+1; f_localplus = newLocalPlus})
-   | _ -> All.failwith "Instruction is not implemented yet"
+    | MAKE_FUNCTION(flags) ->
+       let newDataStack = make_function flags (frame.f_globals) (frame.dataStack) in
+        execBytecode ({frame with dataStack = newDataStack; pc = frame.pc+1})
+   | _ -> All.failwith "Bytecode instruction is not implemented yet"
 
-    
 (*
    - Runs the code in the frame and update the VM once it's done.
    Req: frame is the top element in the callstack in virM.

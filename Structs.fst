@@ -46,33 +46,34 @@ noeq type bytecode =
 (* =============================================================== *)
 
 (* 
-   - The main purpose of using pyObj is to trick 
-     the typing system into accepting the type wihtout
-     satisfying the positivity condition.
-
-   - The main reason of having X as constructor is to
-     be ablt to create empty mappings.
-
-   - Any type/object that is python accessable is an object
-     of the record type0 wraped inside the TYP constructor.
-     Some functions are provided to create objects of
-     the builtin types. int, string, list, tuple    
-   - Types that are jsut interprter representations, are 
-     also included. eg: CODEobj and Frameobj.
+   - builtins are the core values of non-user defined python objects.
+   - It's what gets stored in type0.value.
 *)
 noeq type builtins = 
   | INT: int -> builtins
   | STRING: string -> builtins
   | BOOL: bool -> builtins
-  | LIST: list pyObj  -> builtins
-  | TUPLE: list pyObj -> builtins
+  | LIST: list pyTyp  -> builtins
+  | TUPLE: list pyTyp -> builtins
+  | DICT: list (pyTyp * pyTyp) -> builtins
   | FUNCTION: functionObj -> builtins
   | NONE
-  
+
+(*
+  - user defined and non-user defined python objects
+  - Notice that any entity in python is an object
+*)
+and pyTyp = 
+  | OBJ: type0 -> pyTyp
+
+(*
+  - Entities from the interpter's point of view
+  - UNFUN & BINFUN are used for objects' builtin methods 
+*)
 and pyObj = 
-  | TYP: type0 -> pyObj
-  | BINFUN: (builtins * builtins -> builtins) -> pyObj
-  | UNFUN: (builtins -> builtins) -> pyObj
+  | PYTYP: pyTyp -> pyObj
+  | UNFUN: (pyTyp -> builtins) -> pyObj
+  | BINFUN: (pyTyp * pyTyp -> builtins) -> pyObj
   | CODEOBJECT: codeObj -> pyObj
   | FRAMEOBJECT: frameObj -> pyObj
   | ERR: string -> pyObj
@@ -83,7 +84,7 @@ and type0 = {
   value: builtins;
   fields: Map.t string pyObj;
   methods: Map.t string pyObj
-} 
+}
 
 (* object code *)
 and codeObj = {
@@ -132,4 +133,3 @@ noeq type vm = {
   callStack: list frameObj;
   code: codeObj
 }
-
