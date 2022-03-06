@@ -1,16 +1,4 @@
 module Exec
-
-let builtinsToPyObj (bltin: builtins) = 
-  match bltin with
-  | INT n -> createInt n
-  | STRING s -> createString s
-  | BOOL b -> createBool b
-  | LIST l -> createList l
-  | TUPLE t -> createTuple t
-  | DICT kvl -> createDict kvl 
-  | FUNCTION f -> createFunction f
-  | NONE -> createNone
-
  
 (*
 Notaion: 
@@ -26,6 +14,17 @@ Notaion:
   - res is what a function evaluates to. 
 *) 
 
+let builtinsToPyObj (bltin: builtins) = 
+  match bltin with
+  | INT n -> createInt n
+  | STRING s -> createString s
+  | BOOL b -> createBool b
+  | LIST l -> createList l
+  | TUPLE t -> createTuple t
+  | DICT kvl -> createDict kvl 
+  | FUNCTION f -> createFunction f
+  | NONE -> createNone
+  
 (* Create a new frame and push it in the frame stack *)
 let makeFrame virM code localplus global_names local_names =
   let frame: frameObj = {
@@ -171,7 +170,23 @@ let unary_not datastack =
       | FUNCTION f -> false
       | NONE -> true) in (createBool res)::newDataStack
   | _ -> ERR("Cannot logically negate non-objects")::newDataStack
-  
+
+(*
+   Req: length(datastack) >= 1
+   Ens:
+*)
+let get_iter  datastack = 
+  let tos = List.hd datastack in
+  let newDataStack = List.tail datastack in
+  match tos with
+  | PYTYP(OBJ(obj)) -> 
+    (match (Map.sel (obj.methods) "__iter__") with
+    | UNOBJFUN f -> 
+      (match f (OBJ obj) with
+      | iterObj -> (PYTYP(iterObj))::newDataStack)
+    | err -> err::newDataStack)
+  | _ -> ERR("Cannot iterate over non-objects")::newDataStack
+
 (*
   Req: length(datastack) >= 2
   Ens: 
@@ -379,7 +394,7 @@ let load_name i names f_locals f_globals dataStack =
    | true -> (Map.sel f_locals name)::dataStack 
    | false ->
      (match Map.contains f_globals name with
-      | true -> (Map.sel f_locals name)::dataStack
+      | true -> (Map.sel f_globals name)::dataStack
       | false -> (ERR ("name: " ^ name ^ "is not defined"))::dataStack)
 
 (*
@@ -437,6 +452,28 @@ let jump_if_false_or_pop i pc dataStack =
     | BOOL b -> if b then (pc, newDataStack) else (i/2, dataStack)
     | _ -> (pc, (ERR "ERR: argument is not a Bool")::newDataStack))
   | _ -> (pc, (ERR "ERR: argument is not an object")::newDataStack)
+
+(*
+  Req:
+  Ens:
+  NOTE: This will change once exceptions get implemented
+*)
+let for_iter i pc dataStack =
+  let tos = List.hd dataStack in
+  let newDataStack = List.tail dataStack in
+   match tos with
+  | PYTYP(OBJ(obj)) -> 
+    (match (Map.sel (obj.methods) "__next__") with
+    | UNFUN f -> 
+      (match f (OBJ obj) with
+      | NONE -> (pc, ERR("Trying to iterate over non-iteratable object")::newDataStack)
+      | TUPLE([OBJ(h); newIterator]) ->
+        (match h.name with
+          | "stopIteration" -> (pc + (i/2) + 1, newDataStack)
+          | _ -> (pc, (PYTYP(OBJ(h)))::(PYTYP(newIterator))::newDataStack) )
+      | _ -> (pc, ERR("Trying to iterate over non-iteratable object")::newDataStack))
+    | err -> (pc, err::newDataStack))
+  | _ -> (pc, ERR("Cannot iterate over non-objects")::newDataStack)
 
 (*
   Req:
@@ -551,6 +588,9 @@ let rec execBytecode frame =
     | UNARY_NOT ->
       let newDataStack = unary_not frame.dataStack in
         execBytecode ({frame with dataStack = newDataStack; pc = frame.pc+1})
+    | GET_ITER ->
+      let newDataStack = get_iter frame.dataStack in
+        execBytecode ({frame with dataStack = newDataStack; pc = frame.pc+1})
     | BINARY_MULTIPLY -> 
       let newDataStack = binary_multiply (frame.dataStack) in
         execBytecode ({frame with dataStack = newDataStack; pc = frame.pc+1})
@@ -599,6 +639,10 @@ let rec execBytecode frame =
         execBytecode ({frame with dataStack = newDataStack; pc = newPc})
     | JUMP_IF_FALSE_OR_POP(i) ->
       let newPc, newDataStack = jump_if_false_or_pop i (frame.pc) (frame.dataStack) in
+      let newPc = if frame.pc=newPc then newPc+1 else newPc in
+        execBytecode ({frame with dataStack = newDataStack; pc = newPc})
+    | FOR_ITER(i) ->
+      let newPc, newDataStack = for_iter i (frame.pc) (frame.dataStack) in
       let newPc = if frame.pc=newPc then newPc+1 else newPc in
         execBytecode ({frame with dataStack = newDataStack; pc = newPc})
     | JUMP_ABSOLUTE(i) -> execBytecode ({frame with pc = i/2})

@@ -12,6 +12,7 @@ type opcode =
   | UNARY_POSITIVE: opcode
   | UNARY_NEGATIVE: opcode
   | UNARY_NOT: opcode
+  | GET_ITER: opcode
   | BINARY_MULTIPLY: opcode
   | BINARY_FLOOR_DIVIDE: opcode
   | BINARY_MODULO: opcode
@@ -31,6 +32,7 @@ type opcode =
   | JUMP_IF_TRUE_OR_POP: nat -> opcode
   | JUMP_IF_FALSE_OR_POP: nat -> opcode
   | JUMP_ABSOLUTE: nat -> opcode
+  | FOR_ITER: nat -> opcode
   | LOAD_GLOBAL: nat -> opcode
   | LOAD_FAST: nat -> opcode
   | STORE_FAST: nat -> opcode
@@ -74,6 +76,7 @@ and pyObj =
   | PYTYP: pyTyp -> pyObj
   | UNFUN: (pyTyp -> builtins) -> pyObj
   | BINFUN: (pyTyp * pyTyp -> builtins) -> pyObj
+  | UNOBJFUN: (pyTyp -> pyTyp) -> pyObj
   | CODEOBJECT: codeObj -> pyObj
   | FRAMEOBJECT: frameObj -> pyObj
   | ERR: string -> pyObj

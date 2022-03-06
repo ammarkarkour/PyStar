@@ -2,11 +2,54 @@ module PyList
 
 open Structs
 open Utils
-    
+
+private let createListIter (a: pyTyp) =
+  match a with
+  | OBJ lobj ->
+    (* returns a tuple, (next element, new list_iterator) *)
+    let next = 
+      Map.upd (lobj.methods) "__next__"
+        (UNFUN (fun b -> 
+          match pyTypTobuiltins b with
+          | LIST([]) -> 
+            (* bobj is wrong, it should be replaced by Exception oncce py* support them *)
+            let bobj = {
+              name = "StopIteration"; 
+              pid = 0;
+              value = LIST([]);
+              fields = emptyMap;
+              methods = emptyMap
+            } in
+            TUPLE([OBJ bobj; b])  
+          | LIST(x::l) ->
+            (match b with
+            | OBJ bobj ->
+              let newListIter = OBJ({
+                name = "list_iterator";
+                pid = 0;
+                value = LIST(l);
+                fields = bobj.fields;
+                methods = bobj.methods
+              }) in
+              TUPLE([x; newListIter]))
+          | _ -> NONE)) in
+    let obj: type0= {
+      name = "list_iterator";
+      pid = 0;
+      value = lobj.value;
+      fields = lobj.fields;
+      methods = next
+    } in
+    OBJ(obj)
+
 let createList (l: list pyTyp) =
 
+  let iter =
+    Map.upd emptyMap "__iter__" 
+      (UNOBJFUN (fun a -> createListIter a)) in
+        
   let mul =
-    Map.upd emptyMap "__mul__" 
+    Map.upd iter "__mul__" 
       (BINFUN (fun (a, b) -> 
         match (pyTypTobuiltins a, pyTypTobuiltins b) with 
         | LIST(l), BOOL(b) -> if b then LIST(l) else LIST([])

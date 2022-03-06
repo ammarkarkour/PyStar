@@ -30,6 +30,8 @@ val unary_negative: list pyObj -> All.ML (list pyObj)
 
 val unary_not: list pyObj -> All.ML (list pyObj)
 
+val get_iter: list pyObj -> All.ML (list pyObj)
+
 val binary_multiply: list pyObj -> All.ML (list pyObj)
 
 val binary_floor_divide: list pyObj -> All.ML (list pyObj)
@@ -61,6 +63,8 @@ val pop_jump_if_false: nat -> nat -> list pyObj -> All.ML (nat * list pyObj)
 val jump_if_true_or_pop: nat -> nat -> list pyObj -> All.ML (nat * list pyObj)
 
 val jump_if_false_or_pop: nat -> nat -> list pyObj -> All.ML (nat * list pyObj)
+
+val for_iter: nat ->  nat -> list pyObj -> All.ML (nat * list pyObj)
 
 val load_global: nat -> list string -> Map.t string pyObj -> list pyObj-> All.ML (list pyObj)
 

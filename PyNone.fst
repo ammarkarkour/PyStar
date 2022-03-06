@@ -15,15 +15,11 @@ let createNone =
   (* Should return NotImplemented (Something similar to None) *)
   let lt =
     Map.upd bool "__lt__" 
-      (BINFUN (fun (a, b) -> 
-        match (pyTypTobuiltins a, pyTypTobuiltins b) with 
-        | _ -> NONE)) in
+      (BINFUN (fun (a, b) -> NONE)) in
         
   let le =
     Map.upd lt "__le__" 
-      (BINFUN (fun (a, b) -> 
-        match (pyTypTobuiltins a, pyTypTobuiltins b) with 
-        | _ -> NONE)) in
+      (BINFUN (fun (a, b) ->  NONE)) in
 
   let eq =
     Map.upd le "__eq__" 
@@ -41,15 +37,11 @@ let createNone =
 
   let gt =
     Map.upd neq "__gt__" 
-      (BINFUN (fun (a, b) -> 
-        match (pyTypTobuiltins a, pyTypTobuiltins b) with 
-        | _ -> NONE)) in
+      (BINFUN (fun (a, b) -> NONE)) in
 
   let ge =
     Map.upd gt "__ge__" 
-      (BINFUN (fun (a, b) -> 
-        match (pyTypTobuiltins a, pyTypTobuiltins b) with
-        | _ -> NONE)) in
+      (BINFUN (fun (a, b) ->  NONE)) in
   let allMethods = ge in
   let obj: type0 = {
     name = "NoneType";

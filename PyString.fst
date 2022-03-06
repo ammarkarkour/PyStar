@@ -4,7 +4,62 @@ open Structs
 open Utils
 
 let createString (s: string) =
-        
+
+  let createStringIter a =
+    match a with
+    | OBJ lobj ->
+      (* returns a tuple, (next element, new list_iterator) *)
+      let next = 
+        Map.upd (lobj.methods) "__next__"
+          (UNFUN (fun b -> 
+            match pyTypTobuiltins b with
+            | STRING(s) ->
+              (match String.list_of_string s with
+              | [] -> 
+                (* bobj is wrong, it should be replaced by Exception oncce py* support them *)
+                let bobj = {
+                  name = "StopIteration"; 
+                  pid = 0;
+                  value = STRING("");
+                  fields = emptyMap;
+                  methods = emptyMap
+                } in
+                TUPLE([OBJ bobj; b])
+            
+              | x::l -> 
+                (match b with
+                | OBJ bobj ->
+                  let newListIter = OBJ({
+                    name = "str_iterator";
+                    pid = 0;
+                    value = STRING(String.string_of_list l);
+                    fields = bobj.fields;
+                    methods = bobj.methods
+                  }) in
+                  let nextString = OBJ({
+                    name = "str";
+                    pid = 0;
+                    value = STRING(String.make 1 x);
+                    fields = bobj.fields;
+                    methods = Map.upd  (bobj.methods) "__next__" (ERR "UNDEFINED") 
+                  }) in
+                  TUPLE([nextString; newListIter])))
+            
+            | _ -> NONE)) in
+            
+      let obj: type0= {
+        name = "str_iterator";
+        pid = 0;
+        value = lobj.value;
+        fields = lobj.fields;
+        methods = next
+      } in
+      OBJ(obj) in
+    
+  let iter =
+    Map.upd emptyMap "__iter__" 
+      (UNOBJFUN (fun a -> createStringIter a)) in
+      
   let mul =
     Map.upd emptyMap "__mul__" 
       (BINFUN (fun (a, b) -> 
