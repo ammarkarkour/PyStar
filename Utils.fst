@@ -70,12 +70,15 @@ let pyTypEq (t1: pyTyp) (t2: pyTyp): bool =
   | OBJ(obj1), OBJ(obj2) -> 
     (match (Map.sel (obj1.methods) "__eq__") with
     | BINFUN f ->
-      (match f (t1, t2) with
-      | NONE -> false
+      (let OBJ o = f (t1, t2) in match o.value with
+      | BOOL b -> b
+      | _ -> false)
+      (*
       | bltin -> 
         (match bltin with
         | BOOL(b) -> b
         | _ -> false))
+      *)
     | _ -> false)
   | _ -> false
 
@@ -99,13 +102,20 @@ let rec list_lex_lt l1 l2 =
     | OBJ(obj1) ->
       (match (Map.sel (obj1.methods) "__ge__") with
       | BINFUN f -> 
+        (let OBJ o = f (h1, h2) in match o.value with
+        | BOOL b -> (match b with
+               | false -> list_lex_lt l1 l2
+               | true -> BOOL(false))
+        | _ -> NONE)
+        (*
         (match f (h1, h2) with
         | NONE -> NONE
         | BOOL b ->
           (match b with
           | false -> list_lex_lt l1 l2
           | true -> BOOL(false))
-        | _ -> NONE)
+         
+        | _ -> NONE)*)
       | err -> NONE)
 
 let rec list_lex_le l1 l2 = 
@@ -118,6 +128,12 @@ let rec list_lex_le l1 l2 =
     | OBJ(obj1) ->
       (match (Map.sel (obj1.methods) "__gt__") with
       | BINFUN f -> 
+      (let OBJ o = f (h1, h2) in match o.value with
+        | BOOL b -> (match b with
+               | false -> list_lex_le l1 l2
+               | true -> BOOL(false))
+        | _ -> NONE)
+        (*
         (match f (h1, h2) with
         | NONE -> NONE
         | BOOL b ->
@@ -125,6 +141,7 @@ let rec list_lex_le l1 l2 =
           | false -> list_lex_le l1 l2
           | true -> BOOL(false))
         | _ -> NONE)
+        *)
       | err -> NONE)
 
 let rec list_lex_eq l1 l2 = 
@@ -137,6 +154,12 @@ let rec list_lex_eq l1 l2 =
     | OBJ(obj1) ->
       (match (Map.sel (obj1.methods) "__ne__") with
       | BINFUN f -> 
+      (let OBJ o = f (h1, h2) in match o.value with
+        | BOOL b -> (match b with
+               | false -> list_lex_eq l1 l2
+               | true -> BOOL(false))
+        | _ -> NONE)
+        (*
         (match f (h1, h2) with
         | NONE -> NONE
         | BOOL b ->
@@ -144,6 +167,7 @@ let rec list_lex_eq l1 l2 =
           | false -> list_lex_eq l1 l2
           | true -> BOOL(false))
         | _ -> NONE)
+        *)
       | err -> NONE)
 
 let rec list_lex_ne l1 l2 = 
@@ -156,6 +180,12 @@ let rec list_lex_ne l1 l2 =
     | OBJ(obj1) ->
       (match (Map.sel (obj1.methods) "__eq__") with
       | BINFUN f -> 
+      (let OBJ o = f (h1, h2) in match o.value with
+        | BOOL b -> (match b with
+               | false -> list_lex_ne l1 l2
+               | true -> BOOL(false))
+        | _ -> NONE)
+        (*
         (match f (h1, h2) with
         | NONE -> NONE
         | BOOL b ->
@@ -163,6 +193,7 @@ let rec list_lex_ne l1 l2 =
           | false -> list_lex_ne l1 l2
           | true -> BOOL(false))
         | _ -> NONE)
+        *)
       | err -> NONE)
 
 let rec list_lex_gt l1 l2 = 
@@ -175,6 +206,12 @@ let rec list_lex_gt l1 l2 =
     | OBJ(obj1) ->
       (match (Map.sel (obj1.methods) "__le__") with
       | BINFUN f -> 
+      (let OBJ o = f (h1, h2) in match o.value with
+        | BOOL b -> (match b with
+               | false -> list_lex_gt l1 l2
+               | true -> BOOL(false))
+        | _ -> NONE)
+        (*
         (match f (h1, h2) with
         | NONE -> NONE
         | BOOL b ->
@@ -182,6 +219,7 @@ let rec list_lex_gt l1 l2 =
           | false -> list_lex_gt l1 l2
           | true -> BOOL(false))
         | _ -> NONE)
+        *)
       | err -> NONE)
 
 let rec list_lex_ge l1 l2 = 
@@ -194,6 +232,12 @@ let rec list_lex_ge l1 l2 =
     | OBJ(obj1) ->
       (match (Map.sel (obj1.methods) "__lt__") with
       | BINFUN f -> 
+      (let OBJ o = f (h1, h2) in match o.value with
+        | BOOL b -> (match b with
+               | false -> list_lex_ge l1 l2
+               | true -> BOOL(false))
+        | _ -> NONE)
+        (*
         (match f (h1, h2) with
         | NONE -> NONE
         | BOOL b ->
@@ -201,6 +245,7 @@ let rec list_lex_ge l1 l2 =
           | false -> list_lex_ge l1 l2
           | true -> BOOL(false))
         | _ -> NONE)
+        *)
       | err -> NONE)
 
 (*----------------------------------------------------------*)
