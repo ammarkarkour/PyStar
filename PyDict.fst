@@ -3,7 +3,6 @@ module PyDict
 (* imported modules *)
 open Structs
 open Utils
-open PyList
 (* ---------------- *)
 
 
@@ -20,7 +19,7 @@ let rec is_hashable (kl: list pyTyp) =
   | [] -> true
   | k::kl' -> (is_hashable_key k) && (is_hashable kl')
 
-let createDict (kvl: list (pyTyp * pyTyp)) = 
+let  createDict (kvl: list (pyTyp * pyTyp)) = 
   let kl, vl = List.Tot.Base.unzip kvl in
   match is_hashable kl with
   | false -> ERR("Key is mot hashable")

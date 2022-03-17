@@ -87,6 +87,7 @@ let rec list_contains (l: list pyTyp) (x: pyTyp) =
 (*-----------------------------------------------------------*)
 (*-------------- Python lex List Comparision ----------------*)
 (*-----------------------------------------------------------*)
+(* NOTE: Will change once exceptions are impelemnted *)
 
 let rec list_lex_lt l1 l2 = 
   match l1, l2 with

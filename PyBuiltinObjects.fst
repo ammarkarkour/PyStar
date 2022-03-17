@@ -1,10 +1,11 @@
 module PyBuiltinObjects
 
-include PyInt
-include PyNone
 include PyBool
-include PyList
 include PyDict
-include PyTuple
-include PyString
 include PyFunction
+include PyInt
+include PyList
+include PyList
+include PyNone
+include PyString
+include PyTuple

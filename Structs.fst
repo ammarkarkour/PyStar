@@ -74,9 +74,8 @@ and pyTyp =
 *)
 and pyObj = 
   | PYTYP: pyTyp -> pyObj
-  | UNFUN: (pyTyp -> builtins) -> pyObj
-  | BINFUN: (pyTyp * pyTyp -> builtins) -> pyObj
-  | UNOBJFUN: (pyTyp -> pyTyp) -> pyObj
+  | UNFUN: (pyTyp -> pyTyp) -> pyObj
+  | BINFUN: (pyTyp * pyTyp -> pyTyp) -> pyObj
   | CODEOBJECT: codeObj -> pyObj
   | FRAMEOBJECT: frameObj -> pyObj
   | ERR: string -> pyObj
@@ -134,5 +133,6 @@ and blockObj = {
 (* VM (thread) *)
 noeq type vm = {
   callStack: list frameObj;
-  code: codeObj
+  code: codeObj;
+  vmpid: nat
 }

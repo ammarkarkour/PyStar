@@ -6,7 +6,7 @@ open Utils
 open PyBuiltinObjects
 (* ---------------- *)
 
-val builtinsToPyObj: builtins -> pyObj
+// val builtinsToPyObj: builtins -> pyObj
 
 val makeFrame: vm -> codeObj -> list pyObj -> (Map.t string pyObj) -> (Map.t string pyObj) -> (vm * frameObj)
 

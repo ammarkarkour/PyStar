@@ -3,7 +3,7 @@ module PyString
 open Structs
 open Utils
 
-let createString (s: string) =
+let rec createString (s: string) =
 
   let createStringIter a =
     match a with
@@ -24,7 +24,7 @@ let createString (s: string) =
                   fields = emptyMap;
                   methods = emptyMap
                 } in
-                TUPLE([OBJ bobj; b])
+                createTuple ([OBJ bobj; b])
             
               | x::l -> 
                 (match b with
@@ -43,9 +43,9 @@ let createString (s: string) =
                     fields = bobj.fields;
                     methods = Map.upd  (bobj.methods) "__next__" (ERR "UNDEFINED") 
                   }) in
-                  TUPLE([nextString; newListIter])))
+                  createTuple ([nextString; newListIter])))
             
-            | _ -> NONE)) in
+            | _ -> createNone)) in
             
       let obj: type0= {
         name = "str_iterator";
@@ -58,26 +58,26 @@ let createString (s: string) =
     
   let iter =
     Map.upd emptyMap "__iter__" 
-      (UNOBJFUN (fun a -> createStringIter a)) in
+      (UNFUN (fun a -> createStringIter a)) in
       
   let mul =
     Map.upd emptyMap "__mul__" 
       (BINFUN (fun (a, b) -> 
         match (pyTypTobuiltins a, pyTypTobuiltins b) with
-        | STRING(s), BOOL(b) -> if b then STRING(s) else STRING("")
+        | STRING(s), BOOL(b) -> if b then createString s else createString ""
         | STRING(s), INT(a) ->
           if 0 >= a
-          then STRING("")
+          then createString ""
           else
-          STRING(String.concat "" (tabulate (fun x -> s) a))
-        | _ -> NONE)) in
+          createString (String.concat "" (tabulate (fun x -> s) a))
+        | _ -> createNone)) in
    
   let add =
     Map.upd mul "__add__" 
       (BINFUN (fun (a, b) ->
         match (pyTypTobuiltins a, pyTypTobuiltins b) with
-        | STRING(s1), STRING(s2) -> STRING(s2 ^  s1)
-        | _ -> NONE)) in
+        | STRING(s1), STRING(s2) -> createString (s2 ^  s1)
+        | _ -> createNone)) in
 
   let lt =
     Map.upd add "__lt__" 
@@ -85,10 +85,10 @@ let createString (s: string) =
         match (pyTypTobuiltins a, pyTypTobuiltins b) with
         | STRING(a), STRING(b) -> 
           (match String.compare a b with
-          | 0 -> BOOL(false)
-          | 1 -> BOOL(false)
-          | _ -> BOOL(true)) 
-        | _ -> NONE)) in
+          | 0 -> createBool false
+          | 1 -> createBool false
+          | _ -> createBool true) 
+        | _ -> createNone)) in
         
   let le =
     Map.upd lt "__le__" 
@@ -96,10 +96,10 @@ let createString (s: string) =
         match (pyTypTobuiltins a, pyTypTobuiltins b) with 
         | STRING(a), STRING(b) -> 
           (match String.compare a b with
-          | 0 -> BOOL(true)
-          | 1 -> BOOL(false)
-          | _ -> BOOL(true))
-        | _ -> NONE)) in
+          | 0 -> createBool true
+          | 1 -> createBool false
+          | _ -> createBool true)
+        | _ -> createNone)) in
 
   let eq =
     Map.upd le "__eq__" 
@@ -107,10 +107,10 @@ let createString (s: string) =
         match (pyTypTobuiltins a, pyTypTobuiltins b) with
         | STRING(a), STRING(b) -> 
           (match String.compare a b with
-          | 0 -> BOOL(true)
-          | 1 -> BOOL(false)
-          | _ -> BOOL(false))
-        | _ -> NONE)) in
+          | 0 -> createBool true
+          | 1 -> createBool false
+          | _ -> createBool false)
+        | _ -> createNone)) in
 
   let neq =
     Map.upd eq "__ne__" 
@@ -118,10 +118,10 @@ let createString (s: string) =
         match (pyTypTobuiltins a, pyTypTobuiltins b) with 
         | STRING(a), STRING(b) -> 
           (match String.compare a b with
-          | 0 -> BOOL(false)
-          | 1 -> BOOL(true)
-          | _ -> BOOL(true))
-        | _ -> NONE)) in
+          | 0 -> createBool false
+          | 1 -> createBool true
+          | _ -> createBool true)
+        | _ -> createNone)) in
 
   let gt =
     Map.upd neq "__gt__" 
@@ -129,10 +129,10 @@ let createString (s: string) =
         match (pyTypTobuiltins a, pyTypTobuiltins b) with 
         | STRING(a), STRING(b) -> 
           (match String.compare a b with
-          | 0 -> BOOL(false)
-          | 1 -> BOOL(true)
-          | _ -> BOOL(false))
-        | _ -> NONE)) in
+          | 0 -> createBool false
+          | 1 -> createBool true
+          | _ -> createBool false)
+        | _ -> createNone)) in
 
   let ge =
     Map.upd gt "__ge__" 
@@ -140,10 +140,10 @@ let createString (s: string) =
         match (pyTypTobuiltins a, pyTypTobuiltins b) with
         | STRING(a), STRING(b) -> 
           (match String.compare a b with
-          | 0 -> BOOL(true)
-          | 1 -> BOOL(true)
-          | _ -> BOOL(false))
-        | _ -> NONE)) in
+          | 0 -> createBool true
+          | 1 -> createBool true
+          | _ -> createBool false)
+        | _ -> createNone)) in
   let allMethods = ge in
   let obj: type0 = {
     name = "str";
@@ -152,4 +152,4 @@ let createString (s: string) =
     fields = emptyMap;
     methods = allMethods
   } in
-  PYTYP(OBJ(obj))
+  OBJ(obj)

@@ -3,45 +3,45 @@ module PyNone
 open Structs
 open Utils
 
-let createNone = 
+let rec createNone = 
 
   let bool =
     Map.upd emptyMap "__bool__" 
       (UNFUN (fun a ->
         match pyTypTobuiltins a with 
-        | NONE -> BOOL(false)
-        | _ -> NONE)) in
+        | NONE -> createBool false
+        | _ -> createNone)) in
 
   (* Should return NotImplemented (Something similar to None) *)
   let lt =
     Map.upd bool "__lt__" 
-      (BINFUN (fun (a, b) -> NONE)) in
+      (BINFUN (fun (a, b) -> createNone)) in
         
   let le =
     Map.upd lt "__le__" 
-      (BINFUN (fun (a, b) ->  NONE)) in
+      (BINFUN (fun (a, b) ->  createNone)) in
 
   let eq =
     Map.upd le "__eq__" 
       (BINFUN (fun (a, b) -> 
         match (pyTypTobuiltins a, pyTypTobuiltins b) with 
-        | NONE, NONE -> BOOL(true) 
-        | _ -> NONE)) in
+        | NONE, NONE -> createBool true 
+        | _ -> createNone)) in
 
   let neq =
     Map.upd eq "__ne__" 
       (BINFUN (fun (a, b) -> 
         match (pyTypTobuiltins a, pyTypTobuiltins b) with 
-        | NONE, NONE -> BOOL(false)
-        | _ -> NONE)) in
+        | NONE, NONE -> createBool false
+        | _ -> createNone)) in
 
   let gt =
     Map.upd neq "__gt__" 
-      (BINFUN (fun (a, b) -> NONE)) in
+      (BINFUN (fun (a, b) -> createNone)) in
 
   let ge =
     Map.upd gt "__ge__" 
-      (BINFUN (fun (a, b) ->  NONE)) in
+      (BINFUN (fun (a, b) ->  createNone)) in
   let allMethods = ge in
   let obj: type0 = {
     name = "NoneType";
@@ -50,4 +50,4 @@ let createNone =
     fields = emptyMap;
     methods = allMethods
   } in
-  PYTYP(OBJ(obj))
+  OBJ(obj)
