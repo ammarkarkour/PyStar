@@ -49,44 +49,45 @@ noeq type bytecode =
 
 (* 
    - builtins are the core values of non-user defined python objects.
-   - It's what gets stored in type0.value.
+   - It's what gets stored in obj.value.
 *)
 noeq type builtins = 
   | INT: int -> builtins
   | STRING: string -> builtins
   | BOOL: bool -> builtins
-  | LIST: list pyTyp  -> builtins
-  | TUPLE: list pyTyp -> builtins
-  | DICT: list (pyTyp * pyTyp) -> builtins
+  | LIST: list cls  -> builtins
+  | TUPLE: list cls -> builtins
+  | DICT: list (cls * cls) -> builtins
   | FUNCTION: functionObj -> builtins
+  | EXCEPTION: string -> builtins
+  | USERDEF
   | NONE
 
-(*
-  - user defined and non-user defined python objects
-  - Notice that any entity in python is an object
-*)
-and pyTyp = 
-  | OBJ: type0 -> pyTyp
-
-(*
-  - Entities from the interpter's point of view
-  - UNFUN & BINFUN are used for objects' builtin methods 
-*)
-and pyObj = 
-  | PYTYP: pyTyp -> pyObj
-  | UNFUN: (pyTyp -> pyTyp) -> pyObj
-  | BINFUN: (pyTyp * pyTyp -> pyTyp) -> pyObj
-  | CODEOBJECT: codeObj -> pyObj
-  | FRAMEOBJECT: frameObj -> pyObj
-  | ERR: string -> pyObj
-  
-and type0 = {
+ (*
+   - user defined and non-user defined python objects
+   - Notice that any entity in python is an object
+ *)
+and cls = {
   name: string;
   pid: int;
   value: builtins;
   fields: Map.t string pyObj;
   methods: Map.t string pyObj
 }
+
+(*
+  - Entities from the interpter's point of view
+  - UNFUN & BINFUN are used for objects' builtin methods 
+*)
+and pyObj = 
+  | PYTYP: cls -> pyObj
+  | UNFUNBLT: (cls -> builtins) -> pyObj
+  | UNFUNOBJ: (cls -> cls) -> pyObj
+  | BINFUNBLT: (cls * cls -> builtins) -> pyObj
+  | CODEOBJECT: codeObj -> pyObj
+  | FRAMEOBJECT: frameObj -> pyObj
+  | ERR: string -> pyObj
+ 
 
 (* object code *)
 and codeObj = {
@@ -130,9 +131,15 @@ and blockObj = {
   b_handler: nat
 }
 
+type strInt = 
+  | INTID: int -> strInt
+  | STRINGID: string -> strInt
+  
 (* VM (thread) *)
 noeq type vm = {
   callStack: list frameObj;
   code: codeObj;
-  vmpid: nat
+  vmpid: nat;
+  idCount: nat;
+  usedIds: Map.t strInt int
 }

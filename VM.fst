@@ -13,7 +13,9 @@ let runCode code =
   let initVM: vm = {
     callStack = [];
     code = code;
-    vmpid = 1
+    vmpid = 1;
+    idCount = 1;
+    usedIds = idsMap
   } in
   (* Create global frame to run the byte code instructions in it *)
   let  virM, globalFrame = makeFrame initVM code [] emptyMap emptyMap in
