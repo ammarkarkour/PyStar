@@ -24,6 +24,8 @@ type opcode =
   | LOAD_NAME: nat -> opcode
   | BUILD_TUPLE: nat -> opcode
   | BUILD_LIST: nat -> opcode
+  | BUILD_MAP: nat -> opcode
+  | BUILD_CONST_KEY_MAP: nat -> opcode
   | COMPARE_OP: nat -> opcode
   | JUMP_FORWARD: nat -> opcode
   | POP_JUMP_IF_TRUE: nat -> opcode
@@ -42,6 +44,11 @@ type opcode =
 
 noeq type bytecode = 
   | CODE: l: list opcode -> bytecode
+
+ type hashable =
+  | INTID: int -> hashable
+  | BOOLID: bool -> hashable
+  | STRINGID: string -> hashable
 
 (* =============================================================== *)
 (*                Python Types embeddings in F*                    *)
@@ -96,7 +103,7 @@ and codeObj = {
   co_varnames: list string;
   co_names: list string; 
 }
-
+  
 (* Frame object *)
 and frameObj = {
   dataStack: list pyObj;
@@ -106,6 +113,8 @@ and frameObj = {
   f_localplus: list pyObj;
   f_globals: Map.t string pyObj;
   f_locals: Map.t string pyObj;
+  f_idCount: nat;
+  f_usedIds: Map.t hashable nat
   (* built-in names *)
   (* f_builtins *)
 }
@@ -130,10 +139,6 @@ and blockObj = {
   (* The index of the instruction after the block *)
   b_handler: nat
 }
-
-type strInt = 
-  | INTID: int -> strInt
-  | STRINGID: string -> strInt
   
 (* VM (thread) *)
 noeq type vm = {
@@ -141,5 +146,5 @@ noeq type vm = {
   code: codeObj;
   vmpid: nat;
   idCount: nat;
-  usedIds: Map.t strInt int
+  usedIds: Map.t hashable nat
 }

@@ -36,7 +36,9 @@ let makeFrame virM code localplus global_names local_names =
     f_localplus = localplus;
     pc = 0;
     f_globals = global_names;
-    f_locals = local_names
+    f_locals = local_names;
+    f_idCount = virM.idCount;
+    f_usedIds = virM.usedIds
   } in
   let newVM: vm = {virM with callStack = frame::(virM.callStack)} in
   (newVM, frame)
@@ -45,20 +47,22 @@ let makeFrame virM code localplus global_names local_names =
   Req:
   Ens:
 *)
-let call_function i globals dataStack =
+let call_function i globals dataStack id usedIds =
   let args, newDataStack = List.splitAt i dataStack in
   let localplus = List.Tot.Base.rev args in
   let code, newDataStack = List.splitAt 1 newDataStack in
   match List.hd code with
   | CODEOBJECT co ->  
     let newFrame: frameObj = {
-      dataStack = []; 
+      dataStack = [];
       blockStack = [];
       fCode = co;
       f_localplus = localplus;
       pc = 0;
       f_globals = globals;
-      f_locals = emptyMap
+      f_locals = emptyMap;
+      f_idCount = id;
+      f_usedIds = usedIds
     } in (FRAMEOBJECT newFrame)::dataStack
   | _ -> All.failwith "CALL_FUNCTION: didn't call a function object"
 
@@ -66,7 +70,7 @@ let call_function i globals dataStack =
    Req: length(datastack) >= 1
    Ens: res = datastack[1:]
 *)
-let pop_top datastack = List.tail datastack
+let pop_top datastack =  List.Tot.Base.tail datastack 
 
 (*
    Req: length(datastack) >= 2
@@ -128,8 +132,8 @@ let unary_positive datastack =
   match tos with
   | PYTYP(obj) -> 
     (match (Map.sel (obj.methods) "__pos__") with
-    | UNFUNBLT f -> PYTYP(builtinsToPyObj (f obj))::newDataStack
-    | ERR s -> PYTYP(createException "__pos__ is not defined")::newDataStack
+    | UNFUNBLT f -> PYTYP(builtinsToPyObj (f obj) )::newDataStack
+    | ERR s -> PYTYP(createException "__pos__ is not defined" )::newDataStack
     | _ -> (ERR "INTERPRTER UNDEFINED BEHAVIOR")::newDataStack)
   | _ -> ERR("INTERPRTER UNDEFINED BEHAVIOR")::newDataStack
   
@@ -137,14 +141,14 @@ let unary_positive datastack =
    Req: length(datastack) >= 1
    Ens:
 *)
-let unary_negative datastack = 
+let unary_negative datastack  = 
   let tos = List.hd datastack in
   let newDataStack = List.tail datastack in
   match tos with
   | PYTYP(obj) -> 
     (match (Map.sel (obj.methods) "__neg__") with
-    | UNFUNBLT f -> PYTYP(builtinsToPyObj (f obj))::newDataStack
-    | ERR s -> PYTYP(createException "__neg__ is not defined")::newDataStack
+    | UNFUNBLT f -> PYTYP(builtinsToPyObj (f obj) )::newDataStack
+    | ERR s -> PYTYP(createException "__neg__ is not defined" )::newDataStack
     | _ -> (undefinedBehavior "unary_negative_1")::newDataStack)
   | _ -> (undefinedBehavior "unary_negative_2")::newDataStack
 
@@ -152,7 +156,7 @@ let unary_negative datastack =
    Req: length(datastack) >= 1
    Ens:
 *)
-let unary_not datastack = 
+let unary_not datastack  =
   let tos = List.hd datastack in
   let newDataStack = List.tail datastack in
   match tos with
@@ -168,21 +172,21 @@ let unary_not datastack =
       | FUNCTION f -> false
       | EXCEPTION s -> false
       | USERDEF -> false
-      | NONE -> true) in PYTYP(createBool res)::newDataStack
+      | NONE -> true) in PYTYP(createBool res )::newDataStack
   | _ -> (undefinedBehavior "unary_not")::newDataStack
 
 (*
    Req: length(datastack) >= 1
    Ens:
 *)
-let get_iter  datastack = 
+let get_iter datastack  = 
   let tos = List.hd datastack in
   let newDataStack = List.tail datastack in
   match tos with
   | PYTYP(obj) -> 
     (match (Map.sel (obj.methods) "__iter__") with
     | UNFUNOBJ f -> PYTYP(f obj)::newDataStack
-    | ERR s -> PYTYP(createException "__iter__ is not defined")::newDataStack
+    | ERR s -> PYTYP(createException "__iter__ is not defined" )::newDataStack
     | _ -> (undefinedBehavior "get_iter_1")::newDataStack)
   | _ -> (undefinedBehavior "get_iter_2")::newDataStack
 
@@ -190,15 +194,15 @@ let get_iter  datastack =
   Req: length(datastack) >= 2
   Ens: 
 *)
-let binary_multiply (dataStack: list pyObj) = 
+let binary_multiply (dataStack: list pyObj)  = 
   let tos = List.hd dataStack in
   let tos1 = List.nth dataStack 1 in
   let (_, newDataStack) = List.splitAt 2 dataStack in 
   match (tos, tos1) with
   | PYTYP(obj1), PYTYP(obj2) -> 
     (match (Map.sel (obj1.methods) "__mul__") with
-    | BINFUNBLT f -> PYTYP(builtinsToPyObj (f(obj1, obj2)))::newDataStack
-    | ERR s -> PYTYP(createException "__mul__ is not defined")::newDataStack
+    | BINFUNBLT f -> PYTYP(builtinsToPyObj (f(obj1, obj2)) )::newDataStack
+    | ERR s -> PYTYP(createException "__mul__ is not defined" )::newDataStack
     | _ -> (undefinedBehavior "binary_multiply_1")::newDataStack)
   | _, _ -> (undefinedBehavior "binary_multiply_2")::newDataStack
 
@@ -206,15 +210,15 @@ let binary_multiply (dataStack: list pyObj) =
   Req: length(datastack) >= 2
   Ens: 
 *)
-let binary_floor_divide (dataStack: list pyObj) = 
+let binary_floor_divide (dataStack: list pyObj)  = 
   let tos = List.hd dataStack in
   let tos1 = List.nth dataStack 1 in
   let (_, newDataStack) = List.splitAt 2 dataStack in 
   match (tos, tos1) with
   | PYTYP(obj1), PYTYP(obj2) -> 
     (match (Map.sel (obj1.methods) "__floordiv__") with
-    | BINFUNBLT f -> PYTYP(builtinsToPyObj (f(obj1, obj2)))::newDataStack
-    | ERR s -> PYTYP(createException "__floordiv__ is not defined")::newDataStack
+    | BINFUNBLT f -> PYTYP(builtinsToPyObj (f(obj1, obj2)) )::newDataStack
+    | ERR s -> PYTYP(createException "__floordiv__ is not defined" )::newDataStack
     | _ -> (undefinedBehavior "binary_floor_divide_1")::newDataStack)
   | _, _ -> (undefinedBehavior "binary_floor_divide_2")::newDataStack
 
@@ -222,15 +226,15 @@ let binary_floor_divide (dataStack: list pyObj) =
   Req: length(datastack) >= 2
   Ens: 
 *)
-let binary_modulo (dataStack: list pyObj) = 
+let binary_modulo (dataStack: list pyObj)  = 
   let tos = List.hd dataStack in
   let tos1 = List.nth dataStack 1 in
   let (_, newDataStack) = List.splitAt 2 dataStack in 
   match (tos, tos1) with
   | PYTYP(obj1), PYTYP(obj2) -> 
     (match (Map.sel (obj1.methods) "__mod__") with
-    | BINFUNBLT f -> PYTYP(builtinsToPyObj (f(obj1, obj2)))::newDataStack
-    | ERR s -> PYTYP(createException "__mod__ is not defined")::newDataStack
+    | BINFUNBLT f -> PYTYP(builtinsToPyObj (f(obj1, obj2)) )::newDataStack
+    | ERR s -> PYTYP(createException "__mod__ is not defined" )::newDataStack
     | _ -> (undefinedBehavior "binary_modulo_1")::newDataStack)
   | _, _ -> (undefinedBehavior "binary_modulo_2")::newDataStack
 
@@ -239,15 +243,15 @@ let binary_modulo (dataStack: list pyObj) =
   Req: length(datastack) >= 2
   Ens: 
 *)
-let binary_add (dataStack: list pyObj) = 
+let binary_add (dataStack: list pyObj)  = 
   let tos = List.hd dataStack in
   let tos1 = List.nth dataStack 1 in
   let (_, newDataStack) = List.splitAt 2 dataStack in 
   match (tos, tos1) with
   | PYTYP(obj1), PYTYP(obj2) -> 
     (match (Map.sel (obj1.methods) "__add__") with
-    | BINFUNBLT f -> PYTYP(builtinsToPyObj (f(obj1, obj2)))::newDataStack
-    | ERR s -> PYTYP(createException "__add__ is not defined")::newDataStack
+    | BINFUNBLT f -> PYTYP(builtinsToPyObj (f(obj1, obj2)) )::newDataStack
+    | ERR s -> PYTYP(createException "__add__ is not defined" )::newDataStack
     | _ -> (undefinedBehavior "binary_add_1")::newDataStack)
   | _, _ -> (undefinedBehavior "binary_add_2")::newDataStack
 
@@ -256,15 +260,15 @@ let binary_add (dataStack: list pyObj) =
   Req: length(datastack) >= 2
   Ens: 
 *)
-let binary_subtract (dataStack: list pyObj) = 
+let binary_subtract (dataStack: list pyObj)  = 
   let tos = List.hd dataStack in
   let tos1 = List.nth dataStack 1 in
   let (_, newDataStack) = List.splitAt 2 dataStack in 
   match (tos, tos1) with
   | PYTYP(obj1), PYTYP(obj2) -> 
     (match (Map.sel (obj1.methods) "__sub__") with
-    | BINFUNBLT f -> PYTYP(builtinsToPyObj (f(obj1, obj2)))::newDataStack
-    | ERR s -> PYTYP(createException "__sub__ is not defined")::newDataStack
+    | BINFUNBLT f -> PYTYP(builtinsToPyObj (f(obj1, obj2)) )::newDataStack
+    | ERR s -> PYTYP(createException "__sub__ is not defined" )::newDataStack
     | _ -> (undefinedBehavior "binary_subtract_1")::newDataStack)
   | _, _ -> (undefinedBehavior "binary_subtract_2")::newDataStack
 
@@ -273,15 +277,15 @@ let binary_subtract (dataStack: list pyObj) =
   Req: length(datastack) >= 2
   Ens: 
 *)
-let binary_subscr (dataStack: list pyObj) = 
+let binary_subscr (dataStack: list pyObj)  = 
   let tos = List.hd dataStack in
   let tos1 = List.nth dataStack 1 in
   let (_, newDataStack) = List.splitAt 2 dataStack in 
   match (tos1, tos) with
   | PYTYP(obj1), PYTYP(obj2) -> 
     (match (Map.sel (obj1.methods) "__subscr__") with
-    | BINFUNBLT f -> PYTYP(builtinsToPyObj (f(obj1, obj2)))::newDataStack
-    | ERR s -> PYTYP(createException "__subscr__ is not defined")::newDataStack
+    | BINFUNBLT f -> PYTYP(builtinsToPyObj (f(obj1, obj2)) )::newDataStack
+    | ERR s -> PYTYP(createException "__subscr__ is not defined" )::newDataStack
     | _ -> (undefinedBehavior "binary_subscr_1")::newDataStack)
   | _, _ -> (undefinedBehavior "binary_subscr_2")::newDataStack
 
@@ -290,25 +294,54 @@ let binary_subscr (dataStack: list pyObj) =
   Req: (length(datastack) >= i)
   Ens:
 *)
-let build_tuple i dataStack =
+let build_tuple i dataStack  =
   let elems, newDataStack  = List.splitAt i dataStack in
-    let newDataStack = PYTYP(createTuple(List.map pyObjToobj elems))::newDataStack in
+    let newDataStack = PYTYP(createTuple(List.map pyObjToobj elems) )::newDataStack in
   newDataStack
 
 (*
   Req: (length(datastack) >= i)
   Ens:
 *)
-let build_list i dataStack =
+let build_list i dataStack  =
   let elems, newDataStack  = List.splitAt i dataStack in
-  let newDataStack = PYTYP(createList(List.map pyObjToobj elems))::newDataStack in
+  let newDataStack = PYTYP(createList(List.map pyObjToobj elems) )::newDataStack in
   newDataStack
 
+(*
+  Req: (length(datastack) >= 1+conut)
+  Ens:
+*)
+let build_map count dataStack  =
+  let elems, newDataStack  = List.splitAt (op_Multiply 2 count) dataStack in
+  let clsElems = List.map pyObjToobj elems in
+  let vkl = listToPairs clsElems in
+  let newDataStack = PYTYP(createDict vkl)::newDataStack in
+  newDataStack
+
+(*
+  Req: (length(datastack) >= 2*conut)
+  Ens:
+*)
+let build_const_key_map count dataStack  =
+  let keysObj, newDataStack = List.splitAt 1 dataStack in
+  match keysObj with
+  | [PYTYP obj] ->
+    (match obj.value with
+    | TUPLE keysCls ->
+      (let vals, newDataStack  = List.splitAt count newDataStack in
+       let valsCls = List.map pyObjToobj vals in
+       let vkl = List.zip valsCls keysCls in
+       let newDataStack = PYTYP(createDict vkl)::newDataStack in
+       newDataStack)
+    | _ -> (undefinedBehavior "build_const_key_map_1")::newDataStack)
+  | _ -> (undefinedBehavior "build_const_key_map_2")::newDataStack
+  
 (*
   Req:
   Ens:
 *)
-let compare_op i dataStack = 
+let compare_op i dataStack  =
   let tos = List.hd dataStack in
   let tos1 = List.nth dataStack 1 in
   let (_, newDataStack) = List.splitAt 2 dataStack in
@@ -332,8 +365,8 @@ let compare_op i dataStack =
       (match (Map.sel (obj1.methods) op) with
       | BINFUNBLT f -> 
         (match f(obj1, obj2) with
-          | BOOL b -> PYTYP(createBool b)::newDataStack
-          | _ -> PYTYP(createBool(obj1.pid = obj2.pid))::newDataStack)
+          | BOOL b -> PYTYP(createBool b )::newDataStack
+          | _ -> PYTYP(createBool (obj1.pid = obj2.pid) )::newDataStack)
       | _ -> (undefinedBehavior "compare_op_eq_1")::newDataStack)
     | _,_ -> (undefinedBehavior "compare_op_eq_2")::newDataStack)
   | "__ne__" ->
@@ -342,25 +375,25 @@ let compare_op i dataStack =
       (match (Map.sel (obj1.methods) op) with
       | BINFUNBLT f -> 
         (match f(obj1, obj2) with
-          | BOOL b -> PYTYP(createBool b)::newDataStack
-          | _ -> PYTYP(createBool(obj1.pid <> obj2.pid))::newDataStack)
+          | BOOL b -> PYTYP(createBool b )::newDataStack
+          | _ -> PYTYP(createBool (obj1.pid <> obj2.pid) )::newDataStack)
       | _ -> (undefinedBehavior "compare_op_ne_1")::newDataStack)
     | _,_ -> (undefinedBehavior "compare_op_ne_2")::newDataStack)
   | "__is__" ->
     (match (tos1, tos) with
-    | PYTYP(obj1), PYTYP(obj2) -> PYTYP(createBool(obj1.pid = obj2.pid))::newDataStack
-    | _ -> (undefinedBehavior "compare_op_is")::newDataStack) 
+    | PYTYP(obj1), PYTYP(obj2) -> PYTYP(createBool (obj1.pid = obj2.pid) )::newDataStack
+    | _ -> (undefinedBehavior "compare_op_is")::newDataStack)
   | "__nis__" ->
     (match (tos1, tos) with
-    | PYTYP(obj1), PYTYP(obj2) -> PYTYP(createBool(obj1.pid <> obj2.pid))::newDataStack
+    | PYTYP(obj1), PYTYP(obj2) -> PYTYP(createBool (obj1.pid <> obj2.pid) )::newDataStack
     | _ -> (undefinedBehavior "compare_op_nis")::newDataStack)
   | "error" -> (undefinedBehavior "compare_op_error")::newDataStack
   | _ ->
     match (tos1, tos) with
     | PYTYP(obj1), PYTYP(obj2) -> 
       (match (Map.sel (obj1.methods) op) with
-      | BINFUNBLT f -> PYTYP(builtinsToPyObj (f(obj1, obj2)))::newDataStack
-      | ERR s -> PYTYP(createException "__pos__ is not defined")::newDataStack
+      | BINFUNBLT f -> PYTYP(builtinsToPyObj (f(obj1, obj2)) )::newDataStack
+      | ERR s -> PYTYP(createException "__pos__ is not defined" )::newDataStack
       | _ -> (undefinedBehavior "compare_op_1")::newDataStack)
     | _, _ -> (undefinedBehavior "compare_op_2")::newDataStack
 
@@ -389,69 +422,69 @@ let load_const i consts dataStack =
   Req:
   Ens:
 *)
-let load_name i names f_locals f_globals dataStack =
+let load_name i names f_locals f_globals dataStack  =
   let name = List.nth names i in
   match Map.contains f_locals name with
    | true -> (Map.sel f_locals name)::dataStack 
    | false ->
      (match Map.contains f_globals name with
       | true -> (Map.sel f_globals name)::dataStack
-      | false -> PYTYP(createException ("name: " ^ name ^ "is not defined"))::dataStack)
+      | false -> PYTYP(createException ("name: " ^ name ^ "is not defined") )::dataStack)
 
 (*
   Req:
   Ens:
 *)
-let pop_jump_if_true i pc dataStack =
+let pop_jump_if_true i pc dataStack  =
   let tos = List.hd dataStack in
   let newDataStack = List.tail dataStack in
   match tos with
   | PYTYP(obj) ->
     (match obj.value with
     | BOOL b -> if b then (i/2, newDataStack) else (pc, newDataStack)
-    | _ -> (pc, PYTYP(createException "ERR: argument is not a Bool")::newDataStack))
+    | _ -> (pc, PYTYP(createException "ERR: argument is not a Bool" )::newDataStack))
   | _ -> (pc, (undefinedBehavior "pop_jump_if_true")::newDataStack)
 
 (*
   Req:
   Ens:
 *)
-let pop_jump_if_false i pc dataStack =
+let pop_jump_if_false i pc dataStack  =
   let tos = List.hd dataStack in
   let newDataStack = List.tail dataStack in
   match tos with
   | PYTYP(obj) ->
     (match obj.value with
     | BOOL b -> if b then (pc, newDataStack) else (i/2, newDataStack)
-    | _ -> (pc, PYTYP(createException "ERR: argument is not a Bool")::newDataStack))
+    | _ -> (pc, PYTYP(createException "ERR: argument is not a Bool" )::newDataStack))
   | _ -> (pc, (undefinedBehavior "pop_jump_if_false")::newDataStack)
 
 (*
   Req:
   Ens:
 *)
-let jump_if_true_or_pop i pc dataStack =
+let jump_if_true_or_pop i pc dataStack  =
   let tos = List.hd dataStack in
   let newDataStack = List.tail dataStack in
   match tos with
   | PYTYP(obj) ->
     (match obj.value with
     | BOOL b -> if b then (i/2, dataStack) else (pc, newDataStack)
-    | _ -> (pc, PYTYP(createException "ERR: argument is not a Bool")::newDataStack))
+    | _ -> (pc, PYTYP(createException "ERR: argument is not a Bool" )::newDataStack))
   | _ -> (pc, (undefinedBehavior "jump_if_true_or_pop")::newDataStack)
 
 (*
   Req:
   Ens:
 *)
-let jump_if_false_or_pop i pc dataStack =
+let jump_if_false_or_pop i pc dataStack  =
   let tos = List.hd dataStack in
   let newDataStack = List.tail dataStack in
   match tos with
   | PYTYP(obj) ->
     (match obj.value with
     | BOOL b -> if b then (pc, newDataStack) else (i/2, dataStack)
-    | _ -> (pc, PYTYP(createException "ERR: argument is not a Bool")::newDataStack))
+    | _ -> (pc, PYTYP(createException "ERR: argument is not a Bool" )::newDataStack))
   | _ -> (pc, (undefinedBehavior "jump_if_false_or_pop")::newDataStack)
 
 
@@ -459,7 +492,7 @@ let jump_if_false_or_pop i pc dataStack =
    Req:
    Ens:
 *)
-let for_iter i pc dataStack =
+let for_iter i pc dataStack  =
   let tos = List.hd dataStack in
   let newDataStack = List.tail dataStack in
    match tos with
@@ -470,7 +503,7 @@ let for_iter i pc dataStack =
       | TUPLE [x; newIter] -> (pc, PYTYP(x)::PYTYP(newIter)::newDataStack)
       | EXCEPTION "StopIteration" -> (pc+i, newDataStack)
       | _ -> (pc, (undefinedBehavior "for_iter_1")::newDataStack))
-    |  ERR s -> (pc, PYTYP(createException "Not iteratable object")::newDataStack)
+    |  ERR s -> (pc, PYTYP(createException "Not iteratable object" )::newDataStack)
     | _ -> (pc, (undefinedBehavior "for_iter_2")::newDataStack))
   | _ -> (pc, (undefinedBehavior "for_iter_3")::newDataStack)
 
@@ -478,11 +511,11 @@ let for_iter i pc dataStack =
   Req:
   Ens:
 *)
-let load_global i names f_globals dataStack =
+let load_global i names f_globals dataStack  =
   let name = List.nth names i in
   match Map.contains f_globals name with
    | true -> (Map.sel f_globals name)::dataStack
-   | false -> PYTYP(createException ("name: " ^ name ^ "is not defined"))::dataStack
+   | false -> PYTYP(createException ("name: " ^ name ^ "is not defined") )::dataStack
 
 (*
   Req: (length(localplus) > i) && (length(datastack) >= 1)
@@ -548,7 +581,7 @@ let make_function flags globs dataStack =
 (*
    Req: len(frame.fcode.bytecode) >= 1
 *)
-let rec execBytecode frame =
+let rec execBytecode frame  =
   match check_err frame.dataStack with
   | Some err -> frame
   | None -> 
@@ -557,12 +590,17 @@ let rec execBytecode frame =
     match List.nth bc (frame.pc) with
     | RETURN_VALUE -> frame
     | CALL_FUNCTION i -> 
-      let newDataStack = call_function i (frame.f_globals) frame.dataStack in
+      let newDataStack = call_function i frame.f_globals frame.dataStack frame.f_idCount frame.f_usedIds in
         ({frame with dataStack = newDataStack})
     | NOP -> execBytecode ({frame with pc = frame.pc+1})
     | POP_TOP ->
-      let newDataStack = pop_top frame.dataStack in
-        execBytecode ({frame with dataStack = newDataStack; pc = frame.pc+1})
+      (match frame.dataStack with
+      | [] ->
+        let newDataStack = [undefinedBehavior "pop_top"] in
+          execBytecode ({frame with dataStack = newDataStack; pc = frame.pc+1})
+      | _ ->
+        let newDataStack = pop_top frame.dataStack in
+          execBytecode ({frame with dataStack = newDataStack; pc = frame.pc+1}))
     | ROT_TWO ->
       let newDataStack = rot_two frame.dataStack in
         execBytecode ({frame with dataStack = newDataStack; pc = frame.pc+1})
@@ -622,6 +660,12 @@ let rec execBytecode frame =
         execBytecode ({frame with dataStack = newDataStack; pc = frame.pc+1; f_locals = newLocals})
     |  BUILD_LIST(i) ->
       let newDataStack = build_list i (frame.dataStack) in
+        execBytecode ({frame with dataStack = newDataStack; pc = frame.pc+1})
+    | BUILD_MAP(i) ->
+      let newDataStack = build_map i (frame.dataStack) in
+        execBytecode ({frame with dataStack = newDataStack; pc = frame.pc+1})
+    | BUILD_CONST_KEY_MAP(i) ->
+      let newDataStack = build_const_key_map i (frame.dataStack) in
         execBytecode ({frame with dataStack = newDataStack; pc = frame.pc+1})
     | JUMP_FORWARD(i) -> execBytecode ({frame with pc = frame.pc + (i/2) + 1})
     | POP_JUMP_IF_TRUE(i) ->

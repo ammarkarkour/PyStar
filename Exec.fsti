@@ -6,13 +6,13 @@ open Utils
 open PyBuiltinObjects
 (* ---------------- *)
 
-// val builtinsToPyObj: builtins -> pyObj
+val builtinsToPyObj: builtins -> cls
 
 val makeFrame: vm -> codeObj -> list pyObj -> (Map.t string pyObj) -> (Map.t string pyObj) -> (vm * frameObj)
 
-val call_function:  nat -> (Map.t string pyObj) -> list pyObj -> All.ML (list pyObj)
+val call_function:  nat -> (Map.t string pyObj) -> list pyObj -> nat-> Map.t hashable nat -> All.ML (list pyObj)
 
-val pop_top: list pyObj -> All.ML (list pyObj)
+val pop_top: (l:list pyObj {Cons? l}) -> Tot (list pyObj)
 
 val rot_two: list pyObj -> All.ML (list pyObj)
 
@@ -48,6 +48,10 @@ val build_tuple: nat -> list pyObj -> All.ML (list pyObj)
 
 val build_list: nat -> list pyObj -> All.ML (list pyObj)
 
+val build_map: nat -> list pyObj -> All.ML (list pyObj)
+
+val build_const_key_map: nat -> list pyObj -> All.ML (list pyObj)
+
 val compare_op: nat -> list pyObj -> All.ML (list pyObj)
 
 val store_name: nat -> list string -> Map.t string pyObj -> list pyObj -> All.ML (Map.t string pyObj * list pyObj)
@@ -74,6 +78,6 @@ val store_fast: nat -> list pyObj -> list pyObj -> All.ML (list pyObj * list pyO
 
 val make_function: nat -> (Map.t string pyObj) ->list pyObj -> All.ML (list pyObj)
 
-val execBytecode: frameObj -> All.ML (frameObj)
+val execBytecode: frameObj  -> All.ML (frameObj)
 
 val runFrame: vm -> frameObj -> All.ML (vm * pyObj)

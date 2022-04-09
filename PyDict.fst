@@ -7,10 +7,25 @@ open PyList
 open PyException
 (* ---------------- *)
 
-(*
-   - Return true if k is hashable
-*)
-let is_hashable_key (k: cls) = true
+let rec is_hashable_tuple (l: list cls) =
+  match l with
+  | [] -> true
+  | x::l2 -> (is_hashable_key x) && (is_hashable_tuple l2)
+
+and is_hashable_key (k: cls) =
+  match k.value with
+  | BOOL b -> true
+  | STRING s -> true
+  | INT i -> true
+  | TUPLE l -> is_hashable_tuple l
+  | USERDEF ->
+    (match (Map.sel (k.methods) "__hash__") with
+    | ERR err -> false
+    | _ ->
+      (match (Map.sel (k.methods) "__eq__") with
+      | ERR err -> false
+      | _ -> true))
+  | _ -> false
 
 (*
   - Returns true if each element in kl is hashable
@@ -21,7 +36,7 @@ let rec is_hashable (kl: list cls) =
   | k::kl' -> (is_hashable_key k) && (is_hashable kl')
 
 let createDict (kvl: list (cls * cls)) = 
-  let kl, vl = List.Tot.Base.unzip kvl in
+  let vl, kl = List.Tot.Base.unzip kvl in
   match is_hashable kl with
   | false -> createException "Key is not hashable"
   | true ->

@@ -54,10 +54,15 @@ let rec tabulate' (#a:Type) (f: nat -> a) (i: nat): list a =
   | 0 -> []
   | i -> (f (i-1))::(tabulate' f (i-1))
 
-let tabulate (#a:Type) (f: nat -> a) (i: nat): list a =
+let tabulate (#a:Type) (f: nat -> a) (i: nat): (list a) =
   List.rev (tabulate' f i)
 
-
+let rec listToPairs (#a:Type) l: All.ML (list a) =
+  match l with
+  | [] -> []
+  | x::nil -> All.failwith "List is not of even size"
+  | x::y::l2 -> (x, y)::(listToPairs l2)
+  
 let pyObjToobj (p: pyObj): All.ML cls = 
   match p with
   | PYTYP(obj) -> obj
@@ -196,9 +201,10 @@ let undefinedBehavior s =  ERR (String.concat "" ["INTERPRTER UNDEFINED BEHAVIOR
 (* 
   - objects ids, which will be filled during compiling time
   - key: *)
-let idsMap: Map.t strInt int  = Map.const 0
+let idsMap: Map.t hashable nat  = Map.const 0
 
 (* A counter that will be used to assign process ids for new objects *)
 // let pids = FStar.Ref.alloc 1 
 // let res:int = FStar.Ref.read pids
 // let _ = FStar.Ref.write pids ((FStar.Ref.read pids) + 1)  
+
