@@ -57,17 +57,35 @@ let rec tabulate' (#a:Type) (f: nat -> a) (i: nat): list a =
 let tabulate (#a:Type) (f: nat -> a) (i: nat): (list a) =
   List.rev (tabulate' f i)
 
-let rec listToPairs (#a:Type) l: All.ML (list a) =
+let rec listToPairs (l:list 'a {(List.Tot.length l)%2 = 0}): Tot (list ('a * 'a)) =
   match l with
   | [] -> []
-  | x::nil -> All.failwith "List is not of even size"
   | x::y::l2 -> (x, y)::(listToPairs l2)
   
-let pyObjToobj (p: pyObj): All.ML cls = 
+let pyObjToobj (p: pyObj {PYTYP? p}): cls = 
   match p with
   | PYTYP(obj) -> obj
-  | _ -> All.failwith "Expected Python object, but found interpter object"
-  
+
+
+let rec unwrapPyObjList (l: list pyObj): option (list cls) =
+  match l with
+  | [] -> Some []
+  | x::l ->
+    (match x with
+    | PYTYP obj -> 
+      let l2 = unwrapPyObjList l in
+      (match l2 with
+      | None -> None 
+      | Some l3 -> Some (obj::l3))
+    | _ -> None)
+
+val totZip: (l1: list 'a)  -> (l2: list 'b {List.Tot.length l1 = List.Tot.length l2}) -> Tot (list ('a * 'b))
+let rec totZip l1 l2 =
+  match l1, l2 with
+  | [], [] -> []
+  | hd1::tl1, hd2::tl2 -> (hd1,hd2)::(totZip tl1 tl2)
+
+
 (* Equality defined for Python objects *)
 let objEq (obj1: cls) (obj2: cls): bool = 
   match (Map.sel (obj1.methods) "__eq__") with

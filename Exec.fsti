@@ -4,79 +4,98 @@ module Exec
 open Structs
 open Utils
 open PyBuiltinObjects
+open FStar.List.Tot.Base
 (* ---------------- *)
 
-val builtinsToPyObj: builtins -> cls
+val builtinsToPyObj: builtins -> Tot cls
 
-val makeFrame: vm -> codeObj -> list pyObj -> (Map.t string pyObj) -> (Map.t string pyObj) -> (vm * frameObj)
+val makeFrame: vm -> codeObj -> list pyObj -> (Map.t string pyObj) 
+                  -> (Map.t string pyObj) -> Tot (vm * frameObj)
 
-val call_function:  nat -> (Map.t string pyObj) -> list pyObj -> nat-> Map.t hashable nat -> All.ML (list pyObj)
+val call_function:  (i:nat)
+                 -> (Map.t string pyObj) 
+                 -> (l:list pyObj {length l > i}) 
+                 -> nat
+                 -> Map.t hashable nat -> Tot (list pyObj)
 
 val pop_top: (l:list pyObj {Cons? l}) -> Tot (list pyObj)
 
-val rot_two: list pyObj -> All.ML (list pyObj)
+val rot_two: (l:list pyObj {length l >= 2}) -> Tot (list pyObj)
 
-val rot_three: list pyObj -> All.ML (list pyObj)
+val rot_three: (l:list pyObj {length l >= 3}) -> Tot (list pyObj)
 
-val rot_four: list pyObj -> All.ML (list pyObj)
+val rot_four: (l:list pyObj {length l >= 4}) -> Tot (list pyObj)
 
-val dup_top: list pyObj -> All.ML (list pyObj)
+val dup_top: (l:list pyObj {Cons? l}) -> Tot (list pyObj)
 
-val dup_top_two: list pyObj -> All.ML (list pyObj)
+val dup_top_two: (l:list pyObj {length l >= 2}) -> Tot (list pyObj)
 
-val unary_positive: list pyObj -> All.ML (list pyObj)
+val unary_positive: (l:list pyObj {Cons? l}) -> Tot (list pyObj)
 
-val unary_negative: list pyObj -> All.ML (list pyObj)
+val unary_negative: (l:list pyObj {Cons? l}) -> Tot (list pyObj)
 
-val unary_not: list pyObj -> All.ML (list pyObj)
+val unary_not: (l:list pyObj {Cons? l}) -> Tot (list pyObj)
 
-val get_iter: list pyObj -> All.ML (list pyObj)
+val get_iter: (l:list pyObj {Cons? l}) -> Tot (list pyObj)
 
-val binary_multiply: list pyObj -> All.ML (list pyObj)
+val binary_multiply: (l:list pyObj {length l >= 2}) -> Tot (list pyObj)
 
-val binary_floor_divide: list pyObj -> All.ML (list pyObj)
+val binary_floor_divide: (l:list pyObj {length l >= 2}) -> Tot (list pyObj)
 
-val binary_modulo: list pyObj -> All.ML (list pyObj)
+val binary_modulo: (l:list pyObj {length l >= 2}) -> Tot (list pyObj)
 
-val binary_add: list pyObj -> All.ML (list pyObj)
+val binary_add: (l:list pyObj {length l >= 2}) -> Tot (list pyObj)
 
-val binary_subtract: list pyObj -> All.ML (list pyObj)
+val binary_subtract: (l:list pyObj {length l >= 2}) -> Tot (list pyObj)
 
-val binary_subscr: list pyObj -> All.ML (list pyObj)
+val binary_subscr: (l:list pyObj {length l >= 2}) -> Tot (list pyObj)
 
-val build_tuple: nat -> list pyObj -> All.ML (list pyObj)
+val build_tuple: (n:nat) -> (l:list pyObj {length l >= n}) -> Tot (list pyObj)
 
-val build_list: nat -> list pyObj -> All.ML (list pyObj)
+val build_list: (n:nat) -> (l:list pyObj {length l >= n}) -> Tot (list pyObj)
 
-val build_map: nat -> list pyObj -> All.ML (list pyObj)
+val build_map: (n:nat) -> (l:list pyObj {length l >= (op_Multiply 2 n)})
+                      -> Tot (list pyObj)
 
-val build_const_key_map: nat -> list pyObj -> All.ML (list pyObj)
+val build_const_key_map: (n:nat) -> (l:list pyObj {length l >= n+1})
+                                -> Tot (list pyObj)
 
-val compare_op: nat -> list pyObj -> All.ML (list pyObj)
+val compare_op: nat -> (l:list pyObj {length l >= 2}) -> Tot (list pyObj)
 
-val store_name: nat -> list string -> Map.t string pyObj -> list pyObj -> All.ML (Map.t string pyObj * list pyObj)
+val store_name: (i:nat) -> (l1:list string {length l1 > i})
+                       -> Map.t string pyObj 
+                       -> (l2:list pyObj {Cons? l2}) 
+                       -> Tot (Map.t string pyObj * list pyObj)
 
-val load_const: nat -> list pyObj -> list pyObj -> All.ML (list pyObj)
+val load_const: (i:nat) -> (l:list pyObj {length l > i}) -> list pyObj 
+                       -> Tot (list pyObj)
 
-val load_name: nat -> list string -> Map.t string pyObj -> Map.t string pyObj -> list pyObj-> All.ML (list pyObj)
+val load_name: (i:nat) -> (l:list string {length l > i}) 
+                      -> Map.t string pyObj -> Map.t string pyObj 
+                      -> list pyObj -> Tot (list pyObj)
 
-val pop_jump_if_true: nat -> nat -> list pyObj -> All.ML (nat * list pyObj)
+val pop_jump_if_true: nat -> nat -> (l:list pyObj {Cons? l}) -> Tot (nat * list pyObj)
 
-val pop_jump_if_false: nat -> nat -> list pyObj -> All.ML (nat * list pyObj)
+val pop_jump_if_false: nat -> nat -> (l:list pyObj {Cons? l}) -> Tot (nat * list pyObj)
 
-val jump_if_true_or_pop: nat -> nat -> list pyObj -> All.ML (nat * list pyObj)
+val jump_if_true_or_pop: nat -> nat -> (l:list pyObj {Cons? l}) -> Tot (nat * list pyObj)
 
-val jump_if_false_or_pop: nat -> nat -> list pyObj -> All.ML (nat * list pyObj)
+val jump_if_false_or_pop: nat -> nat -> (l:list pyObj {Cons? l}) -> Tot (nat * list pyObj)
 
-val for_iter: nat ->  nat -> list pyObj -> All.ML (nat * list pyObj)
+val for_iter: nat ->  nat -> (l:list pyObj {Cons? l}) -> Tot (nat * list pyObj)
 
-val load_global: nat -> list string -> Map.t string pyObj -> list pyObj-> All.ML (list pyObj)
+val load_global: (i:nat) -> (l:list string {length l > i}) -> Map.t string pyObj 
+                        -> list pyObj -> Tot (list pyObj)
 
-val load_fast: nat -> list pyObj -> list pyObj -> All.ML (list pyObj)
+val load_fast: (i:nat) -> (l:list pyObj {length l > i}) 
+                      -> list pyObj -> Tot (list pyObj)
 
-val store_fast: nat -> list pyObj -> list pyObj -> All.ML (list pyObj * list pyObj)
+val store_fast: (i:nat) -> (l1:list pyObj {length l1 >= i}) 
+                       -> (l2:list pyObj {Cons? l2}) 
+                       -> Tot (list pyObj * list pyObj)
 
-val make_function: nat -> (Map.t string pyObj) ->list pyObj -> All.ML (list pyObj)
+val make_function: nat -> (Map.t string pyObj) -> (l:list pyObj {length l >= 2})
+                      -> Tot (list pyObj)
 
 val execBytecode: frameObj  -> All.ML (frameObj)
 
