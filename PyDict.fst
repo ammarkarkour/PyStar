@@ -35,8 +35,8 @@ let rec is_hashable (kl: list cls) =
   | [] -> true
   | k::kl' -> (is_hashable_key k) && (is_hashable kl')
 
-let createDict (kvl: list (cls * cls)) = 
-  let vl, kl = List.Tot.Base.unzip kvl in
+let createDict (vkl: list (cls * cls)) = 
+  let vl, kl = List.Tot.Base.unzip vkl in
   match is_hashable kl with
   | false -> createException "Key is not hashable"
   | true ->
@@ -63,10 +63,10 @@ let createDict (kvl: list (cls * cls)) =
       Map.upd le "__eq__" 
         (BINFUNBLT (fun (a, b) -> 
           match (a.value, b.value) with 
-          | DICT(kvl1), DICT(kvl2) ->
-            let kvl1_keys, kvl1_vals = List.Tot.Base.unzip kvl1 in
-            let kvl2_keys, kvl2_vals = List.Tot.Base.unzip kvl2 in
-            (match list_lex_eq kvl1_keys kvl2_keys, list_lex_eq kvl1_vals kvl2_vals with
+          | DICT(vkl1), DICT(vkl2) ->
+            let vkl1_vals, vkl1_keys = List.Tot.Base.unzip vkl1 in
+            let vkl2_vals, vkl2_keys = List.Tot.Base.unzip vkl2 in
+            (match list_lex_eq vkl1_keys vkl2_keys, list_lex_eq vkl1_vals vkl2_vals with
             | BOOL(b1), BOOL(b2) -> BOOL(b1 && b2)
             | _ -> BOOL(false))
           | _ -> EXCEPTION "Dictionary Error")) in
@@ -75,10 +75,10 @@ let createDict (kvl: list (cls * cls)) =
       Map.upd eq "__ne__" 
         (BINFUNBLT (fun (a, b) -> 
           match (a.value, b.value) with 
-          | DICT(kvl1), DICT(kvl2) ->
-            let kvl1_keys, kvl1_vals = List.Tot.Base.unzip kvl1 in
-            let kvl2_keys, kvl2_vals = List.Tot.Base.unzip kvl2 in
-            (match list_lex_ne kvl1_keys kvl2_keys, list_lex_ne kvl1_vals kvl2_vals with
+          | DICT(vkl1), DICT(vkl2) ->
+            let vkl1_vals, vkl1_keys = List.Tot.Base.unzip vkl1 in
+            let vkl2_vals, vkl2_keys = List.Tot.Base.unzip vkl2 in
+            (match list_lex_ne vkl1_keys vkl2_keys, list_lex_ne vkl1_vals vkl2_vals with
             | BOOL(b1), BOOL(b2) -> BOOL(b1 && b2)
             | _ -> BOOL(false))  
           | _ -> EXCEPTION "Dictionary Error")) in
@@ -91,13 +91,23 @@ let createDict (kvl: list (cls * cls)) =
       Map.upd gt "__ge__" 
         (BINFUNBLT (fun (a, b) -> EXCEPTION "Dictionary Error")) in
 
+    let subscr =
+      Map.upd ge "__subscr__"
+        (BINFUNBLT (fun (a, b) ->
+          match (a.value, b.value) with
+          | DICT(vkl1), key ->
+            (match List.Tot.Base.find (fun x -> match x with | v, k -> objEq b k) vkl1 with
+            | None -> EXCEPTION "Dictionary Error"
+            | Some (v, k) -> k.value)
+          | _ -> EXCEPTION "Dictionary Error")) in
+
     let keys = Map.upd emptyMap "keys" (PYTYP(createList kl)) in
     let values = Map.upd keys "values" (PYTYP(createList vl)) in
     let obj: cls = {
       name = "dict";
       pid = 0;
-      value = DICT(kvl);
+      value = DICT(vkl);
       fields = values;
-      methods = emptyMap 
+      methods = subscr
     } in
     obj

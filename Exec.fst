@@ -72,7 +72,6 @@ let call_function i globals dataStack id usedIds =
    Req: length(datastack) >= 1
    Ens: res = datastack[1:]
 *)
-
 let pop_top datastack = tail datastack
 
 let pop_top_rule (datastack: list pyObj {Cons? datastack})

@@ -18,17 +18,31 @@ val call_function:  (i:nat)
                  -> nat
                  -> Map.t hashable nat -> Tot (list pyObj)
 
-val pop_top: (l:list pyObj {Cons? l}) -> Tot (list pyObj)
+val pop_top: (l:list pyObj {Cons? l}) -> Tot (l2:list pyObj {l2 == tail l})
 
-val rot_two: (l:list pyObj {length l >= 2}) -> Tot (list pyObj)
+val rot_two: (l:list pyObj {length l >= 2})
+             -> Tot (l2:list pyObj 
+                        {l2 == (hd (tail l))::(hd l)::(tail (tail l))})
 
-val rot_three: (l:list pyObj {length l >= 3}) -> Tot (list pyObj)
+val rot_three: (l:list pyObj {length l >= 3})
+               -> Tot (l2:list pyObj 
+                          {l2 == (hd (tail l))::
+                                 (hd (tail (tail l)))::
+                                 (hd l)::
+                                 (tail (tail (tail l)))})
 
-val rot_four: (l:list pyObj {length l >= 4}) -> Tot (list pyObj)
+val rot_four: (l:list pyObj {length l >= 4})
+              -> Tot (l2:list pyObj
+                         {l2 == (hd (tail l))::
+                                (hd (tail (tail l)))::
+                                (hd (tail (tail (tail l))))::
+                                (hd l)::
+                                (tail (tail (tail (tail l))))})
 
-val dup_top: (l:list pyObj {Cons? l}) -> Tot (list pyObj)
+val dup_top: (l:list pyObj {Cons? l}) -> Tot (l2:list pyObj {l2 == (hd l)::l})
 
-val dup_top_two: (l:list pyObj {length l >= 2}) -> Tot (list pyObj)
+val dup_top_two: (l:list pyObj {length l >= 2})
+                 -> Tot (l2:list pyObj {l2 == (hd l)::(hd (tail l))::l})
 
 val unary_positive: (l:list pyObj {Cons? l}) -> Tot (list pyObj)
 
