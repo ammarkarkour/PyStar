@@ -78,7 +78,7 @@ let pop_top_rule (datastack: list pyObj {Cons? datastack})
   : Lemma (requires length datastack >= 1)
           (ensures  (length datastack)-1 = length (pop_top datastack))
   = ()
-
+  
 (*
    Req: length(datastack) >= 2
    Ens: res = tos1::tos::datastack[2:]
@@ -144,8 +144,8 @@ let rot_four datastack =
 
 let rot_four_rule (datastack: list pyObj {Cons? datastack})
   : Lemma (requires length datastack >= 4)
-          (ensures length (rot_two datastack) = length datastack 
-                 || length (rot_two datastack) = (length datastack)+1)
+          (ensures length (rot_two datastack) = length datastack)
+                // || length (rot_two datastack) = (length datastack)+1)
   = ()
 
 (*
@@ -1054,4 +1054,3 @@ let rec runFrame virM frame =
       } in
       let newVM: vm = {popVM with callStack = newCallerFrame::newCallStack} in
       runFrame newVM newCallerFrame
-
