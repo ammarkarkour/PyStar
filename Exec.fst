@@ -94,8 +94,7 @@ let rot_two datastack =
 
 let rot_two_rule (datastack: list pyObj {Cons? datastack})
   : Lemma (requires length datastack >= 2)
-          (ensures length (rot_two datastack) = length datastack 
-                 || length (rot_two datastack) = (length datastack)+1)
+          (ensures length (rot_two datastack) = length datastack)
   = ()
   
 (*
@@ -117,8 +116,7 @@ let rot_three datastack =
 
 let rot_three_rule (datastack: list pyObj {Cons? datastack})
   : Lemma (requires length datastack >= 3)
-          (ensures length (rot_two datastack) = length datastack 
-                 || length (rot_two datastack) = (length datastack)+1)
+          (ensures length (rot_two datastack) = length datastack)
   = ()
   
 (*
@@ -145,7 +143,6 @@ let rot_four datastack =
 let rot_four_rule (datastack: list pyObj {Cons? datastack})
   : Lemma (requires length datastack >= 4)
           (ensures length (rot_two datastack) = length datastack)
-                // || length (rot_two datastack) = (length datastack)+1)
   = ()
 
 (*
@@ -189,7 +186,7 @@ let unary_positive datastack =
     | ERR s -> PYTYP(createException "__pos__ is not defined" )::newDataStack
     | _ -> (undefinedBehavior "unary_positive_1")::newDataStack)
   | _ -> (undefinedBehavior "unary_positive_2")::newDataStack
-  
+
 (*
    Req: length(datastack) >= 1
    Ens: res = -tos::datastack[1:]
