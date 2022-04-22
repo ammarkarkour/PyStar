@@ -35,7 +35,7 @@ endif
 
 include $(FSTAR_ULIB)/ml/Makefile.include
 
-all: structs utils exec vm test
+all: structs utils pyexception pybool pylist pydict pyfunction pyint pynone pystring pytuple pybuiltinobjects exec vm test
 
 vm: out VM.fst
 	$(FSTAR) $(FSTAR_DEFAULT_ARGS) --extract 'VM' --odir out --codegen OCaml VM.fst #--record_hints
@@ -53,6 +53,36 @@ exec: out Exec.fst
 utils: out Utils.fst
 	$(FSTAR) $(FSTAR_DEFAULT_ARGS) --extract 'Utils' --odir out --codegen OCaml Utils.fst #--record_hints
 
+pybool: out PyBool.fst
+	$(FSTAR) $(FSTAR_DEFAULT_ARGS) --extract 'PyBool' --odir out --codegen OCaml PyBool.fst #--record_hints
+
+pydict: out PyDict.fst
+	$(FSTAR) $(FSTAR_DEFAULT_ARGS) --extract 'PyDict' --odir out --codegen OCaml PyDict.fst #--record_hints
+
+pyfunction: out PyFunction.fst
+	$(FSTAR) $(FSTAR_DEFAULT_ARGS) --extract 'PyFunction' --odir out --codegen OCaml PyFunction.fst #--record_hints
+
+pyint: out PyInt.fst
+	$(FSTAR) $(FSTAR_DEFAULT_ARGS) --extract 'PyInt' --odir out --codegen OCaml PyInt.fst #--record_hints
+
+pylist: out PyList.fst
+	$(FSTAR) $(FSTAR_DEFAULT_ARGS) --extract 'PyList' --odir out --codegen OCaml PyList.fst #--record_hints
+
+pynone: out PyNone.fst
+	$(FSTAR) $(FSTAR_DEFAULT_ARGS) --extract 'PyNone' --odir out --codegen OCaml PyNone.fst #--record_hints
+
+pystring: out PyString.fst
+	$(FSTAR) $(FSTAR_DEFAULT_ARGS) --extract 'PyString' --odir out --codegen OCaml PyString.fst #--record_hints
+
+pytuple: out PyTuple.fst
+	$(FSTAR) $(FSTAR_DEFAULT_ARGS) --extract 'PyTuple' --odir out --codegen OCaml PyTuple.fst #--record_hints
+
+pyexception: out PyException.fst
+	$(FSTAR) $(FSTAR_DEFAULT_ARGS) --extract 'PyException' --odir out --codegen OCaml PyException.fst #--record_hints
+
+pybuiltinobjects: out PyBuiltinObjects.fst
+	$(FSTAR) $(FSTAR_DEFAULT_ARGS) --extract 'PyBuiltinObjects' --odir out --codegen OCaml PyBuiltinObjects.fst #--record_hints
+
 test: out Test.fst
 	$(FSTAR) $(FSTAR_DEFAULT_ARGS) --extract 'Test' --odir out --codegen OCaml Test.fst #--record_hints
 
@@ -61,7 +91,7 @@ out:
 	mkdir -p out
 
 ocaml: out/Structs.ml out/Exec.ml out/VM.ml
-	cd out; $(OCAMLOPT) Structs.ml Utils.ml Exec.ml VM.ml Test.ml -o Test.exe
+	cd out; $(OCAMLOPT) Structs.ml Utils.ml PyException.ml PyBool.ml PyList.ml PyDict.ml PyFunction.ml PyInt.ml PyNone.ml PyString.ml PyTuple.ml PyBuiltinObjects.ml Exec.ml VM.ml Test.ml -o Test.exe
 
 clean:
 	rm -rf out *~ *.exe

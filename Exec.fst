@@ -74,7 +74,7 @@ let call_function i globals dataStack id usedIds =
 *)
 let pop_top datastack = tail datastack
 
-let pop_top_rule (datastack: list pyObj {Cons? datastack})
+let pop_top_len_prop (datastack: list pyObj)
   : Lemma (requires length datastack >= 1)
           (ensures  (length datastack)-1 = length (pop_top datastack))
   = ()
@@ -92,7 +92,7 @@ let rot_two datastack =
     let _, rest_stack = splitAt 2 datastack in
     tos1::tos::rest_stack
 
-let rot_two_rule (datastack: list pyObj {Cons? datastack})
+let rot_two_len_prop (datastack: list pyObj)
   : Lemma (requires length datastack >= 2)
           (ensures length (rot_two datastack) = length datastack)
   = ()
@@ -114,7 +114,7 @@ let rot_three datastack =
       let _, rest_stack = splitAt 3 datastack in
       tos1::tos2::tos::rest_stack)
 
-let rot_three_rule (datastack: list pyObj {Cons? datastack})
+let rot_three_len_prop (datastack: list pyObj)
   : Lemma (requires length datastack >= 3)
           (ensures length (rot_two datastack) = length datastack)
   = ()
@@ -140,7 +140,7 @@ let rot_four datastack =
         let _, rest_stack = splitAt 4 datastack in
         tos1::tos2::tos3::tos::rest_stack))
 
-let rot_four_rule (datastack: list pyObj {Cons? datastack})
+let rot_four_len_prop (datastack: list pyObj)
   : Lemma (requires length datastack >= 4)
           (ensures length (rot_two datastack) = length datastack)
   = ()
@@ -151,7 +151,7 @@ let rot_four_rule (datastack: list pyObj {Cons? datastack})
 *)
 let dup_top datastack = (hd datastack)::datastack
 
-let dup_top_rule (datastack: list pyObj {Cons? datastack})
+let dup_top_len_prop (datastack: list pyObj)
   : Lemma (requires length datastack >= 1)
           (ensures (length datastack)+1 = length (dup_top datastack))
   = ()
@@ -167,7 +167,7 @@ let dup_top_two datastack =
   | None -> (undefinedBehavior "dup_top")::datastack
   | Some tos1 ->  tos::tos1::datastack
 
-let dup_top_two_rule (datastack: list pyObj {Cons? datastack})
+let dup_top_two_len_prop (datastack: list pyObj)
   : Lemma (requires length datastack >= 2)
           (ensures (length datastack)+2 = length (dup_top_two datastack))
   = ()
@@ -846,7 +846,7 @@ let rec execBytecode frame  =
     
     | LOAD_CONST(i) ->
       (match length frame.fCode.co_consts > i with
-      | fasle -> 
+      | false -> 
         let newDataStack = [undefinedBehavior "LOAD_CONST"] in
           execBytecode ({frame with dataStack = newDataStack; pc = frame.pc+1})
       | true ->

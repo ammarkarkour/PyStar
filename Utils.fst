@@ -21,14 +21,26 @@ let check_err dataStack =
 
 let rec print_type0 (t: cls): All.ML string = print_builtin t.value
 
+and print_vk (vk: cls * cls): All.ML string =
+  match vk with
+  | v, k -> (print_builtin k.value) ^ ":" ^ (print_builtin v.value)
+
 and print_builtin (b: builtins): All.ML string =
   match b with
   | INT i -> Printf.sprintf "INT: %d" i
   | STRING s -> Printf.sprintf "STRING: %s" s
   | BOOL b ->  Printf.sprintf "BOOL: %b" b
-  | LIST l -> List.fold_right (fun a b -> a ^ " " ^ b) (List.map print_type0 l) ""
-  | TUPLE l -> List.fold_right (fun a b -> a ^ " " ^ b) (List.map print_type0 l) ""
+  | LIST l -> 
+    Printf.sprintf "LIST: %s" 
+      ((List.fold_left (fun a b -> a ^ "," ^ b) "[" (List.map print_type0 l)) ^ "]")
+  | TUPLE l -> 
+    Printf.sprintf "TUPLE: %s"
+          (List.fold_left (fun a b -> a ^ "," ^ b) "(" (List.map print_type0 l)) ^ ")"
   | NONE -> Printf.sprintf "NONE"
+  | DICT vkl ->
+    Printf.sprintf "DICT: %s"
+         (List.fold_left (fun a b -> a ^ "," ^ b) "{" (List.map print_vk vkl)) ^ "}"
+  | EXCEPTION s -> Printf.sprintf "EXCEPTION: %s" s  
   | _ -> Printf.sprintf "Not printable"
   
 let print_pyObj (p:pyObj): All.ML string =
