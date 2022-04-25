@@ -8,10 +8,10 @@ When writing a program, it is very important that the written code matches its i
 - Install OCaml from [here](https://ocaml.org/)
 
 ## Setting up the Makefile
-- Change teh variable FSTAR_HOME in the Makefile to path of fstar in your local machine
+- Change the variable FSTAR_HOME in the Makefile to path of fstar in your local machine
 
 ## To Run Test Cases:
-- Write your testcase in the file **Test.fst**
+- Write your test case in the file **Test.fst**
 - Run ($ make all), which translates your code from fstar to ocaml
 - In the file **Test.ml** add this line at the end: **let (p : unit) = print_string(Utils.print_pyObj res)**
 - Run ($ make ocaml), which compiles the ocaml files
