@@ -17,7 +17,9 @@ class Translator:
         """
         bytecode = f'let bc_{self.co_id} = CODE [\n'
         for instr in self.instructions:
-            bytecode += f'  {instr.opname} {instr.arg};\n'
+            opname = instr.opname
+            arg = instr.arg if instr.arg != None else ""
+            bytecode += f'  {opname} {arg};\n'
         return (bytecode+"]\n")
     
     def get_fstar_names(self) -> str:
@@ -44,7 +46,7 @@ class Translator:
         elif isinstance(x, int):
             return f'createInt {x}'
         elif isinstance(x, str):
-            return f'createString {x}'
+            return f'createString "{x}"'
         elif isinstance(x, bool):
             return f'createBool {x}'
         elif isinstance(x, list):

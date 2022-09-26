@@ -1,6 +1,6 @@
 #include ../Makefile.include
 # --------------------------------------------------------------------
-FSTAR_HOME = /home/karkour/.fstar/fstar
+# FSTAR_HOME = /home/akarkour/.fstar
 
 ifdef FSTAR_HOME
    FSTAR_ULIB=$(FSTAR_HOME)/ulib
@@ -83,15 +83,20 @@ pyexception: out PyException.fst
 pybuiltinobjects: out PyBuiltinObjects.fst
 	$(FSTAR) $(FSTAR_DEFAULT_ARGS) --extract 'PyBuiltinObjects' --odir out --codegen OCaml PyBuiltinObjects.fst #--record_hints
 
-test: out Test.fst
-	$(FSTAR) $(FSTAR_DEFAULT_ARGS) --extract 'Test' --odir out --codegen OCaml Test.fst #--record_hints
+test: out test/Test.fst
+	$(FSTAR) $(FSTAR_DEFAULT_ARGS) --extract 'Test' --odir out --codegen OCaml test/Test.fst #--record_hints
 
+autotestTranslate: out test/$(NAME).fst
+	$(FSTAR) $(FSTAR_DEFAULT_ARGS) --extract '$(NAME)' --odir out --codegen OCaml test/$(NAME).fst #--record_hints
 
 out:
 	mkdir -p out
 
 ocaml: out/Structs.ml out/Exec.ml out/VM.ml
 	cd out; $(OCAMLOPT) Structs.ml Utils.ml PyException.ml PyBool.ml PyList.ml PyDict.ml PyFunction.ml PyInt.ml PyNone.ml PyString.ml PyTuple.ml PyBuiltinObjects.ml Exec.ml VM.ml Test.ml -o Test.exe
+
+autotestCompile:
+	cd out; $(OCAMLOPT) Structs.ml Utils.ml PyException.ml PyBool.ml PyList.ml PyDict.ml PyFunction.ml PyInt.ml PyNone.ml PyString.ml PyTuple.ml PyBuiltinObjects.ml Exec.ml VM.ml $(NAME).ml -o $(NAME).exe
 
 clean:
 	rm -rf out *~ *.exe
