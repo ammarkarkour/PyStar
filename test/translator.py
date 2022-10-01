@@ -1,5 +1,6 @@
 import dis
 from types import CodeType
+from config import Config
 
 
 class Translator:
@@ -106,6 +107,22 @@ class Translator:
         )
         codeObj = self.get_fstar_codeObj()
         run_code = f'let res = runCode co_{self.co_id}'
+        
+        if Config.CORRECTNESS_TEST:
+            run_code = (f'let res, virt_m = runCode_returnVM co_{self.co_id}\n'
+                         'let print_program_state = IO.print_string '
+                         '(print_program_state res virt_m)'
+                        )
+
+        if Config.PERFROMANCE_TEST:
+            run_code = ( 'let time_now = Date.secondsFromDawn()\n'
+                        f'{run_code}\n'
+                         'let time_later = Date.secondsFromDawn()\n'
+                         'let all_time = time_later - time_now\n'
+                         'let performance_print = IO.print_string '
+                         '("EXECUTION TIME: " ^ (print_builtin (INT all_time)))'
+            )
+        
         fstar_code = f'{headers}\n{codeObj}\n{run_code}'
         
         # Write the code to file

@@ -14,7 +14,13 @@ let (check_err :
                   FStar_Pervasives_Native.Some (Structs.PYTYP obj)
               | uu___2 -> FStar_Pervasives_Native.None)
          | uu___2 -> FStar_Pervasives_Native.None)
-let rec (print_type0 : Structs.cls -> Prims.string) =
+let rec (print_pyObj : Structs.pyObj -> Prims.string) =
+  fun p ->
+    match p with
+    | Structs.ERR s -> Prims.strcat "ERR: " (Prims.strcat s "")
+    | Structs.PYTYP typ -> print_type0 typ
+    | uu___ -> "Not printable"
+and (print_type0 : Structs.cls -> Prims.string) =
   fun t -> print_builtin t.Structs.value
 and (print_vk : (Structs.cls * Structs.cls) -> Prims.string) =
   fun vk ->
@@ -29,46 +35,86 @@ and (print_builtin : Structs.builtins -> Prims.string) =
   fun b ->
     match b with
     | Structs.INT i ->
-        Prims.strcat "INT: " (Prims.strcat (Prims.string_of_int i) "")
-    | Structs.STRING s -> Prims.strcat "STRING: " (Prims.strcat s "")
+        Prims.strcat "" (Prims.strcat (Prims.string_of_int i) "")
+    | Structs.STRING s -> Prims.strcat "'" (Prims.strcat s "'")
     | Structs.BOOL b1 ->
-        Prims.strcat "BOOL: " (Prims.strcat (Prims.string_of_bool b1) "")
+        Prims.strcat "" (Prims.strcat (Prims.string_of_bool b1) "")
     | Structs.LIST l ->
         let uu___ =
           let uu___1 =
             let uu___2 = FStar_List.map print_type0 l in
-            FStar_List.fold_left
-              (fun a -> fun b1 -> Prims.strcat a (Prims.strcat "," b1)) "["
-              uu___2 in
-          Prims.strcat uu___1 "]" in
-        Prims.strcat "LIST: " (Prims.strcat uu___ "")
+            FStar_List.fold_right
+              (fun a -> fun b1 -> Prims.strcat a (Prims.strcat "," b1))
+              uu___2 "]" in
+          Prims.strcat "[" uu___1 in
+        Prims.strcat "" (Prims.strcat uu___ "")
     | Structs.TUPLE l ->
         let uu___ =
           let uu___1 =
             let uu___2 = FStar_List.map print_type0 l in
-            FStar_List.fold_left
-              (fun a -> fun b1 -> Prims.strcat a (Prims.strcat "," b1)) "("
-              uu___2 in
-          Prims.strcat "TUPLE: " (Prims.strcat uu___1 "") in
-        Prims.strcat uu___ ")"
-    | Structs.NONE -> "NONE"
+            FStar_List.fold_right
+              (fun a -> fun b1 -> Prims.strcat a (Prims.strcat "," b1))
+              uu___2 ")" in
+          Prims.strcat "(" uu___1 in
+        Prims.strcat "" (Prims.strcat uu___ "")
+    | Structs.NONE -> "None"
     | Structs.DICT vkl ->
         let uu___ =
           let uu___1 =
             let uu___2 = FStar_List.map print_vk vkl in
-            FStar_List.fold_left
-              (fun a -> fun b1 -> Prims.strcat a (Prims.strcat "," b1)) "{"
-              uu___2 in
-          Prims.strcat "DICT: " (Prims.strcat uu___1 "") in
-        Prims.strcat uu___ "}"
+            FStar_List.fold_right
+              (fun a -> fun b1 -> Prims.strcat a (Prims.strcat "," b1))
+              uu___2 "}" in
+          Prims.strcat "{" uu___1 in
+        Prims.strcat "" (Prims.strcat uu___ "")
     | Structs.EXCEPTION s -> Prims.strcat "EXCEPTION: " (Prims.strcat s "")
+    | Structs.FUNCTION fo ->
+        let uu___ = print_pyObj fo.Structs.func_name in
+        Prims.strcat "FUNCTION: " (Prims.strcat uu___ "")
     | uu___ -> "Not printable"
-let (print_pyObj : Structs.pyObj -> Prims.string) =
-  fun p ->
-    match p with
-    | Structs.ERR s -> Prims.strcat "ERR: " (Prims.strcat s "")
-    | Structs.PYTYP typ -> print_type0 typ
-    | uu___ -> "Not printable"
+let (print_program_state : Structs.vm -> Structs.pyObj -> Prims.string) =
+  fun state ->
+    fun result ->
+      let result_string =
+        let uu___ = print_pyObj result in
+        Prims.strcat "" (Prims.strcat uu___ "") in
+      let constansts_string =
+        let uu___ =
+          let uu___1 =
+            let uu___2 =
+              FStar_List.map print_pyObj
+                (state.Structs.code).Structs.co_consts in
+            FStar_List.fold_right
+              (fun a -> fun b -> Prims.strcat a (Prims.strcat "," b)) uu___2
+              "]" in
+          Prims.strcat "[" uu___1 in
+        Prims.strcat "" (Prims.strcat uu___ "") in
+      let varnames_string =
+        let uu___ =
+          let uu___1 =
+            FStar_List.fold_right
+              (fun a -> fun b -> Prims.strcat a (Prims.strcat "," b))
+              (state.Structs.code).Structs.co_varnames "]" in
+          Prims.strcat "[" uu___1 in
+        Prims.strcat "" (Prims.strcat uu___ "") in
+      let names_string =
+        let uu___ =
+          let uu___1 =
+            FStar_List.fold_right
+              (fun a ->
+                 fun b ->
+                   Prims.strcat "'"
+                     (Prims.strcat a (Prims.strcat "'" (Prims.strcat "," b))))
+              (state.Structs.code).Structs.co_names "]" in
+          Prims.strcat "[" uu___1 in
+        Prims.strcat "" (Prims.strcat uu___ "") in
+      Prims.strcat
+        (Prims.strcat
+           (Prims.strcat
+              (Prims.strcat "" (Prims.strcat result_string "\n---\n"))
+              (Prims.strcat constansts_string "\n---\n"))
+           (Prims.strcat varnames_string "\n---\n"))
+        (Prims.strcat names_string "")
 let rec (subString_pos' :
   FStar_String.char Prims.list ->
     Prims.int -> FStar_String.char FStar_Pervasives_Native.option)

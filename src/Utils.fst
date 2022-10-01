@@ -19,7 +19,13 @@ let check_err dataStack =
       | _ -> None)
     | _ -> None
 
-let rec print_type0 (t: cls): All.ML string = print_builtin t.value
+let rec print_pyObj (p:pyObj): All.ML string =
+  match p with
+  | ERR s -> Printf.sprintf "ERR: %s" s
+  | PYTYP (typ) ->  print_type0 typ
+  | _ -> Printf.sprintf "Not printable"
+
+and print_type0 (t: cls): All.ML string = print_builtin t.value
 
 and print_vk (vk: cls * cls): All.ML string =
   match vk with
@@ -27,27 +33,32 @@ and print_vk (vk: cls * cls): All.ML string =
 
 and print_builtin (b: builtins): All.ML string =
   match b with
-  | INT i -> Printf.sprintf "INT: %d" i
-  | STRING s -> Printf.sprintf "STRING: %s" s
-  | BOOL b ->  Printf.sprintf "BOOL: %b" b
+  | INT i -> Printf.sprintf "%d" i
+  | STRING s -> Printf.sprintf "'%s'" s
+  | BOOL b ->  Printf.sprintf "%b" b
   | LIST l -> 
-    Printf.sprintf "LIST: %s" 
-      ((List.fold_left (fun a b -> a ^ "," ^ b) "[" (List.map print_type0 l)) ^ "]")
+    Printf.sprintf "%s" 
+      ("[" ^ (List.fold_right (fun a b -> a ^ "," ^ b) (List.map print_type0 l) "]"))
   | TUPLE l -> 
-    Printf.sprintf "TUPLE: %s"
-          (List.fold_left (fun a b -> a ^ "," ^ b) "(" (List.map print_type0 l)) ^ ")"
-  | NONE -> Printf.sprintf "NONE"
+    Printf.sprintf "%s"
+      ("(" ^ (List.fold_right (fun a b -> a ^ "," ^ b) (List.map print_type0 l) ")"))
   | DICT vkl ->
-    Printf.sprintf "DICT: %s"
-         (List.fold_left (fun a b -> a ^ "," ^ b) "{" (List.map print_vk vkl)) ^ "}"
+    Printf.sprintf "%s"
+      ("{" ^ (List.fold_right (fun a b -> a ^ "," ^ b) (List.map print_vk vkl) "}"))
+  | FUNCTION fo -> Printf.sprintf "FUNCTION: %s" (print_pyObj fo.func_name)
   | EXCEPTION s -> Printf.sprintf "EXCEPTION: %s" s  
+  | NONE -> Printf.sprintf "None"
   | _ -> Printf.sprintf "Not printable"
-  
-let print_pyObj (p:pyObj): All.ML string =
-  match p with
-  | ERR s -> Printf.sprintf "ERR: %s" s
-  | PYTYP (typ) ->  print_type0 typ
-  | _ -> Printf.sprintf "Not printable"
+
+and print_program_state (state: vm) (result: pyObj): All.ML string = 
+  let result_string = Printf.sprintf "%s" (print_pyObj result) in
+  let constansts_string = Printf.sprintf "%s" 
+      ("[" ^ (List.fold_right (fun a b -> a ^ "," ^ b) (List.map print_pyObj (state.code.co_consts)) "]")) in
+  let varnames_string = Printf.sprintf "%s" 
+      ("[" ^ (List.fold_right (fun a b -> a ^ "," ^ b) (state.code.co_varnames) "]")) in
+  let names_string = Printf.sprintf "%s" 
+      ("[" ^ (List.fold_right (fun a b -> "'" ^ a ^ "'" ^ "," ^ b) (state.code.co_names) "]")) in
+  Printf.sprintf "%s\n---\n%s\n---\n%s\n---\n%s" result_string constansts_string varnames_string names_string
 
 let rec subString_pos' (cl: list String.char) (i: int): All.ML (option String.char) =
   match cl with
@@ -236,5 +247,4 @@ let idsMap: Map.t hashable nat  = Map.const 0
 (* A counter that will be used to assign process ids for new objects *)
 // let pids = FStar.Ref.alloc 1 
 // let res:int = FStar.Ref.read pids
-// let _ = FStar.Ref.write pids ((FStar.Ref.read pids) + 1)  
-
+// let _ = FStar.Ref.write pids ((FStar.Ref.read pids) + 1)

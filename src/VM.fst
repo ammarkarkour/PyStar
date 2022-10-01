@@ -21,3 +21,17 @@ let runCode code =
   let  virM, globalFrame = makeFrame initVM code [] emptyMap emptyMap in
   let  finalVM, result = runFrame virM globalFrame in
   result
+
+let runCode_returnVM code =
+  (* Init the virtual machine *)
+  let initVM: vm = {
+    callStack = [];
+    code = code;
+    vmpid = 1;
+    idCount = 1;
+    usedIds = idsMap
+  } in
+  (* Create global frame to run the byte code instructions in it *)
+  let  virM, globalFrame = makeFrame initVM code [] emptyMap emptyMap in
+  let  finalVM, result = runFrame virM globalFrame in
+  finalVM, result

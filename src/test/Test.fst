@@ -1,4 +1,4 @@
-module Test 
+module Test
 
 (* imported modules *)
 open Structs
@@ -7,42 +7,93 @@ open Utils
 open PyBuiltinObjects
 (* ---------------- *)
 
-(* Test case 1*)
-let bc1 = CODE [
-    LOAD_CONST 1;
-    RETURN_VALUE
+let bc_0x7fefbe736660 = CODE [
+  LOAD_CONST 0;
+  LOAD_CONST 1;
+  MAKE_FUNCTION 0;
+  STORE_NAME 0;
+  LOAD_CONST 2;
+  LOAD_CONST 3;
+  MAKE_FUNCTION 0;
+  STORE_NAME 1;
+  LOAD_CONST 4;
+  RETURN_VALUE ;
 ]
 
-let co_test1 = {
-  co_code = bc1;
-  co_consts = [PYTYP(createNone()); PYTYP(createInt 3)];
-  co_varnames = [];
-  co_names = []
-}
-
-(* Test case 2 *)
-let bc2 = CODE [
+let bc_0x7fefbe7365b0 = CODE [
   LOAD_CONST 1;
   STORE_FAST 0;
-
-  LOAD_CONST 2;
-  STORE_FAST 1;
-
   LOAD_FAST 0;
-  LOAD_FAST 1;
-  BINARY_ADD;
-  STORE_FAST 2;
-
-  LOAD_FAST 2;
-  RETURN_VALUE
+  RETURN_VALUE ;
 ]
 
-let co_test2 = {
-  co_code = bc2;
-  co_consts = [PYTYP(createNone()); PYTYP(createInt 1); PYTYP(createInt 2)];
-  co_varnames = ["x"; "y"; "Z"];
-  co_names = []
+let consts_0x7fefbe7365b0 = [
+  PYTYP(createNone());
+  PYTYP(createInt 7);
+]
+
+let varnames_0x7fefbe7365b0 = [
+  "y";
+]
+
+let names_0x7fefbe7365b0 = [
+]
+
+let co_0x7fefbe7365b0 = {
+  co_code = bc_0x7fefbe7365b0;
+  co_consts = consts_0x7fefbe7365b0;
+  co_varnames = varnames_0x7fefbe7365b0;
+  co_names = names_0x7fefbe7365b0
 }
 
+let bc_0x7fefbe736450 = CODE [
+  LOAD_CONST 1;
+  STORE_FAST 0;
+  LOAD_FAST 0;
+  RETURN_VALUE ;
+]
 
-let res = runCode co_test2
+let consts_0x7fefbe736450 = [
+  PYTYP(createNone());
+  PYTYP(createInt 5);
+]
+
+let varnames_0x7fefbe736450 = [
+  "x";
+]
+
+let names_0x7fefbe736450 = [
+]
+
+let co_0x7fefbe736450 = {
+  co_code = bc_0x7fefbe736450;
+  co_consts = consts_0x7fefbe736450;
+  co_varnames = varnames_0x7fefbe736450;
+  co_names = names_0x7fefbe736450
+}
+
+let consts_0x7fefbe736660 = [
+  CODEOBJECT(co_0x7fefbe736450);
+  PYTYP(createString "first_function");
+  CODEOBJECT(co_0x7fefbe7365b0);
+  PYTYP(createString "second_function");
+  PYTYP(createNone());
+]
+
+let varnames_0x7fefbe736660 = [
+]
+
+let names_0x7fefbe736660 = [
+  "first_function";
+  "second_function";
+]
+
+let co_0x7fefbe736660 = {
+  co_code = bc_0x7fefbe736660;
+  co_consts = consts_0x7fefbe736660;
+  co_varnames = varnames_0x7fefbe736660;
+  co_names = names_0x7fefbe736660
+}
+
+let res, virt_m = runCode_returnVM co_0x7fefbe736660
+let print_program_state = IO.print_string (print_program_state res virt_m)

@@ -2,5 +2,5 @@ from doctest import COMPARISON_FLAGS
 
 
 class Config:
-    PERFROMANCE_TEST = True
-    COMPARISON_TEST = False
+    PERFROMANCE_TEST = False
+    CORRECTNESS_TEST = True
