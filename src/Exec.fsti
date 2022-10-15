@@ -13,7 +13,6 @@ val makeFrame: vm -> codeObj -> list pyObj -> (Map.t string pyObj)
                   -> (Map.t string pyObj) -> Tot (vm * frameObj)
 
 val call_function:  (i:nat)
-                 -> (Map.t string pyObj) 
                  -> (l:list pyObj {length l > i}) 
                  -> nat
                  -> Map.t hashable nat -> Tot (list pyObj)

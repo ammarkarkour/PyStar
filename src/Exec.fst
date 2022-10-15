@@ -40,33 +40,37 @@ let makeFrame virM code localplus global_names local_names =
     f_idCount = virM.idCount;
     f_usedIds = virM.usedIds
   } in
-
-  let newVM: vm = {virM with callStack = frame::(virM.callStack)} in
-  (newVM, frame)
+  (virM, frame)
 
 (*
   Req:
   Ens:
 *)
-let call_function i globals dataStack id usedIds =
+let call_function i dataStack id usedIds =
   let args, newDataStack = splitAt i dataStack in
   let localplus = rev args in
   let code, restStack = splitAt 1 newDataStack in
   match nth code 0 with
   | None -> (undefinedBehavior "call_function_1")::dataStack
-  | Some (CODEOBJECT co) -> 
-    let newFrame: frameObj = {
-      dataStack = [];
-      blockStack = [];
-      fCode = co;
-      f_localplus = localplus;
-      pc = 0;
-      f_globals = globals;
-      f_locals = emptyMap;
-      f_idCount = id;
-      f_usedIds = usedIds
-    } in (FRAMEOBJECT newFrame)::restStack
-  | _ -> (undefinedBehavior "call_function_2")::dataStack
+  | Some (PYTYP obj) -> 
+    (match obj.value with
+     | FUNCTION func -> 
+       (match func.func_Code with
+        | CODEOBJECT co ->
+          (let newFrame: frameObj = {
+            dataStack = [];
+            blockStack = [];
+            fCode = co;
+            f_localplus = localplus;
+            pc = 0;
+            f_globals = func.func_globals;
+            f_locals = emptyMap;
+            f_idCount = id;
+            f_usedIds = usedIds
+          } in (FRAMEOBJECT newFrame)::restStack)
+        | _ -> (undefinedBehavior "call_function_2")::dataStack)
+     | _ -> (undefinedBehavior "call_function_3")::dataStack)
+  | _ -> (undefinedBehavior "call_function_4")::dataStack
 
 (*
    Req: length(datastack) >= 1
@@ -645,36 +649,43 @@ let make_function flags globs dataStack =
   let codeobj = nth dataStack 1 in
   match codeobj with
   | None -> (undefinedBehavior "make_function_1")::dataStack
-  | Some codeobj ->
+  | Some (CODEOBJECT co) ->
     let (_, newDataStack) = splitAt 2 dataStack in
-    (match newDataStack with
-    | [] -> (undefinedBehavior "make_function_2")::dataStack
-    | _ ->
-      let func = createFunction ({
-      func_Code = codeobj;
+    let func = createFunction ({
+      func_Code = CODEOBJECT co;
       func_globals = globs;
       func_name = qualname;
       func_closure =
         if flags = 8 then
-        (match hd newDataStack with
-         | PYTYP(obj) ->
-           (match obj.value with
+        (match newDataStack with
+         | [] -> undefinedBehavior "make_function_func_closure_1"
+         | _ ->
+         (match hd newDataStack with
+          | PYTYP(obj) ->
+            (match obj.value with
              | TUPLE(t) -> PYTYP(createTuple t)
-             | _ -> undefinedBehavior "make_function_func_closure_1")
-         | _ -> undefinedBehavior "make_function_func_closure_2") else PYTYP(createNone());
+             | _ -> undefinedBehavior "make_function_func_closure_2")
+          | _ -> undefinedBehavior "make_function_func_closure_3")) else PYTYP(createNone());
 
       func_defaults =
         if flags = 1 then
-        (match  hd newDataStack with
-        | PYTYP(obj) ->
-           (match obj.value with
+        (match newDataStack with
+         | [] -> undefinedBehavior "make_function_func_defaults_1"
+         | _ ->
+         (match  hd newDataStack with
+          | PYTYP(obj) ->
+            (match obj.value with
              | TUPLE(t) -> PYTYP(createTuple t)
-             | _ -> undefinedBehavior "make_function_func_defaults_1")
-         | _ -> undefinedBehavior "make_function_func_defaults_2") else PYTYP(createNone());
+             | _ -> undefinedBehavior "make_function_func_defaults_2")
+          | _ -> undefinedBehavior "make_function_func_defaults_3")) else PYTYP(createNone());
     }) in
-      (match flags with
-       | 0 -> PYTYP(func)::newDataStack
-       | _ -> PYTYP(func)::(tail newDataStack)))
+    (match flags with
+     | 0 -> PYTYP(func)::newDataStack
+     | _ -> 
+     (match newDataStack with
+      | [] -> (undefinedBehavior "make_function_2")::dataStack
+      | _ -> PYTYP(func)::(tail newDataStack)))
+  | _ -> (undefinedBehavior "make_function_3")::dataStack 
 
 (*
    Req: len(frame.fcode.bytecode) >= 1
@@ -694,7 +705,7 @@ let rec execBytecode frame  =
         let newDataStack = [undefinedBehavior "CALL_FUNCTION"] in
           ({frame with dataStack = newDataStack})
       | true ->
-        let newDataStack = call_function i frame.f_globals frame.dataStack
+        let newDataStack = call_function i frame.dataStack
                          frame.f_idCount frame.f_usedIds in
         ({frame with dataStack = newDataStack}))
     
@@ -1016,6 +1027,7 @@ let rec execBytecode frame  =
 
 (*
    - Runs the code in the frame and update the VM once it's done.
+   - frame is top frame in call stack, and the caller frame is the top frame in virM
    Req: frame is the top element in the callstack in virM.
 *)
 let rec runFrame virM frame =
@@ -1029,25 +1041,22 @@ let rec runFrame virM frame =
     let resultStack = {resultFrame with dataStack = List.tail resultFrame.dataStack} in
     let newVM = {virM with callStack = resultFrame::(virM.callStack)} in
     runFrame newVM newFrame
-  
   | _ -> 
     (* new global names*)
     let new_globals = resultFrame.f_globals in
-    (* Pop the top frame *)
-    let popVM = {virM with callStack = List.tail (virM.callStack)} in
     
     (* Check if the top frame is the global frame *)
-    if List.length popVM.callStack = 0
-    then (popVM, result) 
+    if List.length virM.callStack = 0
+    then (virM, result) 
     else
       (* Push result to the top of the caller frame (top frame in the call stack) *)
-      let callerFrame = List.hd popVM.callStack in
-      let newCallStack = List.tail popVM.callStack in
+      let callerFrame = List.hd virM.callStack in
+      let newCallStack = List.tail virM.callStack in
       let newCallerFrame = {
         callerFrame with 
           dataStack =  result::callerFrame.dataStack;
           pc = callerFrame.pc + 1;
           f_globals = new_globals
       } in
-      let newVM: vm = {popVM with callStack = newCallerFrame::newCallStack} in
+      let newVM: vm = {virM with callStack = newCallStack} in
       runFrame newVM newCallerFrame

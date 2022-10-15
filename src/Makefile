@@ -35,7 +35,7 @@ endif
 
 include $(FSTAR_ULIB)/ml/Makefile.include
 
-all: structs utils pyexception pybool pylist pydict pyfunction pyint pynone pystring pytuple pybuiltinobjects exec vm test
+all: structs utils pyexception pybool pylist pydict pyfunction pyint pynone pystring pytuple pybuiltinobjects exec vm ocaml
 
 vm: out VM.fst
 	$(FSTAR) $(FSTAR_DEFAULT_ARGS) --extract 'VM' --odir out --codegen OCaml VM.fst #--record_hints
@@ -93,7 +93,7 @@ out:
 	mkdir -p out
 
 ocaml: out/Structs.ml out/Exec.ml out/VM.ml
-	cd out; $(OCAMLOPT) Structs.ml Utils.ml PyException.ml PyBool.ml PyList.ml PyDict.ml PyFunction.ml PyInt.ml PyNone.ml PyString.ml PyTuple.ml PyBuiltinObjects.ml Exec.ml VM.ml Test.ml -o Test.exe
+	cd out; $(OCAMLOPT) Structs.ml Utils.ml PyException.ml PyBool.ml PyList.ml PyDict.ml PyFunction.ml PyInt.ml PyNone.ml PyString.ml PyTuple.ml PyBuiltinObjects.ml Exec.ml VM.ml
 
 autotestCompile:
 	cd out; $(OCAMLOPT) Structs.ml Utils.ml PyException.ml PyBool.ml PyList.ml PyDict.ml PyFunction.ml PyInt.ml PyNone.ml PyString.ml PyTuple.ml PyBuiltinObjects.ml Exec.ml VM.ml $(NAME).ml -o $(NAME).exe

@@ -21,11 +21,18 @@ let check_err dataStack =
 
 let rec print_pyObj (p:pyObj): All.ML string =
   match p with
-  | ERR s -> Printf.sprintf "ERR: %s" s
-  | PYTYP (typ) ->  print_type0 typ
-  | _ -> Printf.sprintf "Not printable"
+  | ERR s -> Printf.sprintf "ERR:%s" s
+  | CODEOBJECT co -> Printf.sprintf "CODEOBJECT:%s" (print_codeObj co)
+  | FRAMEOBJECT fo -> Printf.sprintf "FRAME:%s" (print_codeObj fo.fCode)
+  | UNFUNOBJ f -> "UNFUNOBJ:"
+  | BINFUNBLT f -> "BINFUNBLT:"
+  | PYTYP (typ) -> print_type0 typ
+  | _ -> "UNFUNBLT:"
 
-and print_type0 (t: cls): All.ML string = print_builtin t.value
+and print_type0 (t: cls): All.ML string =
+  match t.value with
+  | USERDEF -> Printf.sprintf "CLASS:%s" t.name
+  | _ -> print_builtin t.value
 
 and print_vk (vk: cls * cls): All.ML string =
   match vk with
@@ -33,32 +40,36 @@ and print_vk (vk: cls * cls): All.ML string =
 
 and print_builtin (b: builtins): All.ML string =
   match b with
-  | INT i -> Printf.sprintf "%d" i
-  | STRING s -> Printf.sprintf "'%s'" s
-  | BOOL b ->  Printf.sprintf "%b" b
+  | INT i -> Printf.sprintf "INT:%d" i
+  | STRING s -> Printf.sprintf "STRING:%s" s
+  | BOOL b ->  Printf.sprintf "BOOL:%b" b
   | LIST l -> 
-    Printf.sprintf "%s" 
+    Printf.sprintf "LIST:%s" 
       ("[" ^ (List.fold_right (fun a b -> a ^ "," ^ b) (List.map print_type0 l) "]"))
   | TUPLE l -> 
-    Printf.sprintf "%s"
+    Printf.sprintf "TUPLE:%s"
       ("(" ^ (List.fold_right (fun a b -> a ^ "," ^ b) (List.map print_type0 l) ")"))
   | DICT vkl ->
-    Printf.sprintf "%s"
+    Printf.sprintf "DICT:%s"
       ("{" ^ (List.fold_right (fun a b -> a ^ "," ^ b) (List.map print_vk vkl) "}"))
-  | FUNCTION fo -> Printf.sprintf "FUNCTION: %s" (print_pyObj fo.func_name)
-  | EXCEPTION s -> Printf.sprintf "EXCEPTION: %s" s  
-  | NONE -> Printf.sprintf "None"
-  | _ -> Printf.sprintf "Not printable"
+  | FUNCTION fo -> Printf.sprintf "FUNCTION:%s" (print_pyObj fo.func_name)
+  | EXCEPTION s -> Printf.sprintf "EXCEPTION:%s" s  
+  | USERDEF -> "USERDEF:"
+  | NONE -> "NONE:None"
+
+and print_codeObj (co: codeObj): All.ML string = 
+  let constansts_string = Printf.sprintf "CONSTANTS:%s" 
+      ("[" ^ (List.fold_right (fun a b -> a ^ "," ^ b) (List.map print_pyObj (co.co_consts)) "]")) in
+  let varnames_string = Printf.sprintf "VARNAMES:%s" 
+      ("[" ^ (List.fold_right (fun a b -> a ^ "," ^ b) (co.co_varnames) "]")) in
+  let names_string = Printf.sprintf "NAMES:%s" 
+      ("[" ^ (List.fold_right (fun a b ->  a ^ "," ^ b) (co.co_names) "]")) in
+  Printf.sprintf "[%s, %s, %s]" constansts_string varnames_string names_string
 
 and print_program_state (state: vm) (result: pyObj): All.ML string = 
-  let result_string = Printf.sprintf "%s" (print_pyObj result) in
-  let constansts_string = Printf.sprintf "%s" 
-      ("[" ^ (List.fold_right (fun a b -> a ^ "," ^ b) (List.map print_pyObj (state.code.co_consts)) "]")) in
-  let varnames_string = Printf.sprintf "%s" 
-      ("[" ^ (List.fold_right (fun a b -> a ^ "," ^ b) (state.code.co_varnames) "]")) in
-  let names_string = Printf.sprintf "%s" 
-      ("[" ^ (List.fold_right (fun a b -> "'" ^ a ^ "'" ^ "," ^ b) (state.code.co_names) "]")) in
-  Printf.sprintf "%s\n---\n%s\n---\n%s\n---\n%s" result_string constansts_string varnames_string names_string
+  let result_string = Printf.sprintf "RESULT:%s" (print_pyObj result) in
+  let co_string = print_codeObj state.code in
+  Printf.sprintf "STATE:[%s, %s]" result_string co_string
 
 let rec subString_pos' (cl: list String.char) (i: int): All.ML (option String.char) =
   match cl with

@@ -106,17 +106,19 @@ class Translator:
             '(* ---------------- *)\n'
         )
         codeObj = self.get_fstar_codeObj()
-        run_code = f'let res = runCode co_{self.co_id}'
+        run_code = (f'let res = runCode co_{self.co_id}\n'
+                     'let print_program_state = IO.print_string (print_pyObj res)'
+                    )
         
         if Config.CORRECTNESS_TEST:
-            run_code = (f'let res, virt_m = runCode_returnVM co_{self.co_id}\n'
+            run_code = (f'let virt_m, res = runCode_returnVM co_{self.co_id}\n'
                          'let print_program_state = IO.print_string '
-                         '(print_program_state res virt_m)'
+                         '(print_program_state virt_m res)'
                         )
 
         if Config.PERFROMANCE_TEST:
             run_code = ( 'let time_now = Date.secondsFromDawn()\n'
-                        f'{run_code}\n'
+                        f'let res = runCode co_{self.co_id}\n'
                          'let time_later = Date.secondsFromDawn()\n'
                          'let all_time = time_later - time_now\n'
                          'let performance_print = IO.print_string '

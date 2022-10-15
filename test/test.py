@@ -1,7 +1,10 @@
-def first_function():
-    x = 5
-    return x
-
-def second_function():
-    y = 7
-    return y
+def top_level():
+    def test():
+        return 7
+    
+    def test2():
+        return 3
+    
+    x = test()
+    y = test2()
+    return (x * y)

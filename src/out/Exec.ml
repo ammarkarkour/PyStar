@@ -38,57 +38,56 @@ let (makeFrame :
                 Structs.f_idCount = (virM.Structs.idCount);
                 Structs.f_usedIds = (virM.Structs.usedIds)
               } in
-            let newVM =
-              {
-                Structs.callStack = (frame :: (virM.Structs.callStack));
-                Structs.code = (virM.Structs.code);
-                Structs.vmpid = (virM.Structs.vmpid);
-                Structs.idCount = (virM.Structs.idCount);
-                Structs.usedIds = (virM.Structs.usedIds)
-              } in
-            (newVM, frame)
+            (virM, frame)
 let (call_function :
   Prims.nat ->
-    (Prims.string, Structs.pyObj) FStar_Map.t ->
-      Structs.pyObj Prims.list ->
-        Prims.nat ->
-          (Structs.hashable, Prims.nat) FStar_Map.t ->
-            Structs.pyObj Prims.list)
+    Structs.pyObj Prims.list ->
+      Prims.nat ->
+        (Structs.hashable, Prims.nat) FStar_Map.t -> Structs.pyObj Prims.list)
   =
   fun i ->
-    fun globals ->
-      fun dataStack ->
-        fun id ->
-          fun usedIds ->
-            let uu___ = FStar_List_Tot_Base.splitAt i dataStack in
-            match uu___ with
-            | (args, newDataStack) ->
-                let localplus = FStar_List_Tot_Base.rev args in
-                let uu___1 =
-                  FStar_List_Tot_Base.splitAt Prims.int_one newDataStack in
-                (match uu___1 with
-                 | (code, restStack) ->
-                     (match FStar_List_Tot_Base.nth code Prims.int_zero with
-                      | FStar_Pervasives_Native.None ->
-                          (Utils.undefinedBehavior "call_function_1") ::
-                          dataStack
-                      | FStar_Pervasives_Native.Some (Structs.CODEOBJECT co)
-                          ->
-                          let newFrame =
-                            {
-                              Structs.dataStack = [];
-                              Structs.blockStack = [];
-                              Structs.fCode = co;
-                              Structs.pc = Prims.int_zero;
-                              Structs.f_localplus = localplus;
-                              Structs.f_globals = globals;
-                              Structs.f_locals = Utils.emptyMap;
-                              Structs.f_idCount = id;
-                              Structs.f_usedIds = usedIds
-                            } in
-                          (Structs.FRAMEOBJECT newFrame) :: restStack
-                      | uu___2 -> (Utils.undefinedBehavior "call_function_2")
-                          :: dataStack))
+    fun dataStack ->
+      fun id ->
+        fun usedIds ->
+          let uu___ = FStar_List_Tot_Base.splitAt i dataStack in
+          match uu___ with
+          | (args, newDataStack) ->
+              let localplus = FStar_List_Tot_Base.rev args in
+              let uu___1 =
+                FStar_List_Tot_Base.splitAt Prims.int_one newDataStack in
+              (match uu___1 with
+               | (code, restStack) ->
+                   (match FStar_List_Tot_Base.nth code Prims.int_zero with
+                    | FStar_Pervasives_Native.None ->
+                        (Utils.undefinedBehavior "call_function_1") ::
+                        dataStack
+                    | FStar_Pervasives_Native.Some (Structs.PYTYP obj) ->
+                        (match obj.Structs.value with
+                         | Structs.FUNCTION func ->
+                             (match func.Structs.func_Code with
+                              | Structs.CODEOBJECT co ->
+                                  let newFrame =
+                                    {
+                                      Structs.dataStack = [];
+                                      Structs.blockStack = [];
+                                      Structs.fCode = co;
+                                      Structs.pc = Prims.int_zero;
+                                      Structs.f_localplus = localplus;
+                                      Structs.f_globals =
+                                        (func.Structs.func_globals);
+                                      Structs.f_locals = Utils.emptyMap;
+                                      Structs.f_idCount = id;
+                                      Structs.f_usedIds = usedIds
+                                    } in
+                                  (Structs.FRAMEOBJECT newFrame) :: restStack
+                              | uu___2 ->
+                                  (Utils.undefinedBehavior "call_function_2")
+                                  :: dataStack)
+                         | uu___2 ->
+                             (Utils.undefinedBehavior "call_function_3") ::
+                             dataStack)
+                    | uu___2 -> (Utils.undefinedBehavior "call_function_4")
+                        :: dataStack))
 let (pop_top : Structs.pyObj Prims.list -> Structs.pyObj Prims.list) =
   fun datastack -> FStar_List_Tot_Base.tail datastack
 
@@ -850,61 +849,72 @@ let (make_function :
         match codeobj with
         | FStar_Pervasives_Native.None ->
             (Utils.undefinedBehavior "make_function_1") :: dataStack
-        | FStar_Pervasives_Native.Some codeobj1 ->
+        | FStar_Pervasives_Native.Some (Structs.CODEOBJECT co) ->
             let uu___ =
               FStar_List_Tot_Base.splitAt (Prims.of_int (2)) dataStack in
             (match uu___ with
              | (uu___1, newDataStack) ->
-                 (match newDataStack with
-                  | [] -> (Utils.undefinedBehavior "make_function_2") ::
-                      dataStack
+                 let func =
+                   PyFunction.createFunction
+                     {
+                       Structs.func_Code = (Structs.CODEOBJECT co);
+                       Structs.func_globals = globs;
+                       Structs.func_name = qualname;
+                       Structs.func_closure =
+                         (if flags = (Prims.of_int (8))
+                          then
+                            match newDataStack with
+                            | [] ->
+                                Utils.undefinedBehavior
+                                  "make_function_func_closure_1"
+                            | uu___2 ->
+                                (match FStar_List_Tot_Base.hd newDataStack
+                                 with
+                                 | Structs.PYTYP obj ->
+                                     (match obj.Structs.value with
+                                      | Structs.TUPLE t ->
+                                          Structs.PYTYP
+                                            (PyTuple.createTuple t)
+                                      | uu___3 ->
+                                          Utils.undefinedBehavior
+                                            "make_function_func_closure_2")
+                                 | uu___3 ->
+                                     Utils.undefinedBehavior
+                                       "make_function_func_closure_3")
+                          else Structs.PYTYP (PyNone.createNone ()));
+                       Structs.func_defaults =
+                         (if flags = Prims.int_one
+                          then
+                            match newDataStack with
+                            | [] ->
+                                Utils.undefinedBehavior
+                                  "make_function_func_defaults_1"
+                            | uu___2 ->
+                                (match FStar_List_Tot_Base.hd newDataStack
+                                 with
+                                 | Structs.PYTYP obj ->
+                                     (match obj.Structs.value with
+                                      | Structs.TUPLE t ->
+                                          Structs.PYTYP
+                                            (PyTuple.createTuple t)
+                                      | uu___3 ->
+                                          Utils.undefinedBehavior
+                                            "make_function_func_defaults_2")
+                                 | uu___3 ->
+                                     Utils.undefinedBehavior
+                                       "make_function_func_defaults_3")
+                          else Structs.PYTYP (PyNone.createNone ()))
+                     } in
+                 (match flags with
+                  | uu___2 when uu___2 = Prims.int_zero ->
+                      (Structs.PYTYP func) :: newDataStack
                   | uu___2 ->
-                      let func =
-                        PyFunction.createFunction
-                          {
-                            Structs.func_Code = codeobj1;
-                            Structs.func_globals = globs;
-                            Structs.func_name = qualname;
-                            Structs.func_closure =
-                              (if flags = (Prims.of_int (8))
-                               then
-                                 match FStar_List_Tot_Base.hd newDataStack
-                                 with
-                                 | Structs.PYTYP obj ->
-                                     (match obj.Structs.value with
-                                      | Structs.TUPLE t ->
-                                          Structs.PYTYP
-                                            (PyTuple.createTuple t)
-                                      | uu___3 ->
-                                          Utils.undefinedBehavior
-                                            "make_function_func_closure_1")
-                                 | uu___3 ->
-                                     Utils.undefinedBehavior
-                                       "make_function_func_closure_2"
-                               else Structs.PYTYP (PyNone.createNone ()));
-                            Structs.func_defaults =
-                              (if flags = Prims.int_one
-                               then
-                                 match FStar_List_Tot_Base.hd newDataStack
-                                 with
-                                 | Structs.PYTYP obj ->
-                                     (match obj.Structs.value with
-                                      | Structs.TUPLE t ->
-                                          Structs.PYTYP
-                                            (PyTuple.createTuple t)
-                                      | uu___3 ->
-                                          Utils.undefinedBehavior
-                                            "make_function_func_defaults_1")
-                                 | uu___3 ->
-                                     Utils.undefinedBehavior
-                                       "make_function_func_defaults_2"
-                               else Structs.PYTYP (PyNone.createNone ()))
-                          } in
-                      (match flags with
-                       | uu___3 when uu___3 = Prims.int_zero ->
-                           (Structs.PYTYP func) :: newDataStack
+                      (match newDataStack with
+                       | [] -> (Utils.undefinedBehavior "make_function_2") ::
+                           dataStack
                        | uu___3 -> (Structs.PYTYP func) ::
                            (FStar_List_Tot_Base.tail newDataStack))))
+        | uu___ -> (Utils.undefinedBehavior "make_function_3") :: dataStack
 let rec (execBytecode : Structs.frameObj -> Structs.frameObj) =
   fun frame ->
     let uu___ = Utils.check_err frame.Structs.dataStack in
@@ -921,9 +931,8 @@ let rec (execBytecode : Structs.frameObj -> Structs.frameObj) =
                   if (FStar_List_Tot_Base.length frame.Structs.dataStack) > i
                   then
                     let newDataStack =
-                      call_function i frame.Structs.f_globals
-                        frame.Structs.dataStack frame.Structs.f_idCount
-                        frame.Structs.f_usedIds in
+                      call_function i frame.Structs.dataStack
+                        frame.Structs.f_idCount frame.Structs.f_usedIds in
                     {
                       Structs.dataStack = newDataStack;
                       Structs.blockStack = (frame.Structs.blockStack);
@@ -2147,15 +2156,7 @@ let rec (runFrame :
           runFrame newVM newFrame
       | uu___ ->
           let new_globals = resultFrame.Structs.f_globals in
-          let popVM =
-            let uu___1 = FStar_List.tail virM.Structs.callStack in
-            {
-              Structs.callStack = uu___1;
-              Structs.code = (virM.Structs.code);
-              Structs.vmpid = (virM.Structs.vmpid);
-              Structs.idCount = (virM.Structs.idCount);
-              Structs.usedIds = (virM.Structs.usedIds)
-            } in
+          let popVM = virM in
           if
             (FStar_List_Tot_Base.length popVM.Structs.callStack) =
               Prims.int_zero
@@ -2178,7 +2179,7 @@ let rec (runFrame :
                } in
              let newVM =
                {
-                 Structs.callStack = (newCallerFrame :: newCallStack);
+                 Structs.callStack = newCallStack;
                  Structs.code = (popVM.Structs.code);
                  Structs.vmpid = (popVM.Structs.vmpid);
                  Structs.idCount = (popVM.Structs.idCount);

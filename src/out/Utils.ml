@@ -17,11 +17,23 @@ let (check_err :
 let rec (print_pyObj : Structs.pyObj -> Prims.string) =
   fun p ->
     match p with
-    | Structs.ERR s -> Prims.strcat "ERR: " (Prims.strcat s "")
+    | Structs.ERR s -> Prims.strcat "ERR:" (Prims.strcat s "")
+    | Structs.CODEOBJECT co ->
+        let uu___ = print_codeObj co in
+        Prims.strcat "CODEOBJECT:" (Prims.strcat uu___ "")
+    | Structs.FRAMEOBJECT fo ->
+        let uu___ = print_codeObj fo.Structs.fCode in
+        Prims.strcat "FRAME:" (Prims.strcat uu___ "")
+    | Structs.UNFUNOBJ f -> "UNFUNOBJ:"
+    | Structs.BINFUNBLT f -> "BINFUNBLT:"
     | Structs.PYTYP typ -> print_type0 typ
-    | uu___ -> "Not printable"
+    | uu___ -> "UNFUNBLT:"
 and (print_type0 : Structs.cls -> Prims.string) =
-  fun t -> print_builtin t.Structs.value
+  fun t ->
+    match t.Structs.value with
+    | Structs.USERDEF ->
+        Prims.strcat "CLASS:" (Prims.strcat t.Structs.name "")
+    | uu___ -> print_builtin t.Structs.value
 and (print_vk : (Structs.cls * Structs.cls) -> Prims.string) =
   fun vk ->
     match vk with
@@ -35,10 +47,10 @@ and (print_builtin : Structs.builtins -> Prims.string) =
   fun b ->
     match b with
     | Structs.INT i ->
-        Prims.strcat "" (Prims.strcat (Prims.string_of_int i) "")
-    | Structs.STRING s -> Prims.strcat "'" (Prims.strcat s "'")
+        Prims.strcat "INT:" (Prims.strcat (Prims.string_of_int i) "")
+    | Structs.STRING s -> Prims.strcat "STRING:" (Prims.strcat s "")
     | Structs.BOOL b1 ->
-        Prims.strcat "" (Prims.strcat (Prims.string_of_bool b1) "")
+        Prims.strcat "BOOL:" (Prims.strcat (Prims.string_of_bool b1) "")
     | Structs.LIST l ->
         let uu___ =
           let uu___1 =
@@ -47,7 +59,7 @@ and (print_builtin : Structs.builtins -> Prims.string) =
               (fun a -> fun b1 -> Prims.strcat a (Prims.strcat "," b1))
               uu___2 "]" in
           Prims.strcat "[" uu___1 in
-        Prims.strcat "" (Prims.strcat uu___ "")
+        Prims.strcat "LIST:" (Prims.strcat uu___ "")
     | Structs.TUPLE l ->
         let uu___ =
           let uu___1 =
@@ -56,8 +68,7 @@ and (print_builtin : Structs.builtins -> Prims.string) =
               (fun a -> fun b1 -> Prims.strcat a (Prims.strcat "," b1))
               uu___2 ")" in
           Prims.strcat "(" uu___1 in
-        Prims.strcat "" (Prims.strcat uu___ "")
-    | Structs.NONE -> "None"
+        Prims.strcat "TUPLE:" (Prims.strcat uu___ "")
     | Structs.DICT vkl ->
         let uu___ =
           let uu___1 =
@@ -66,55 +77,52 @@ and (print_builtin : Structs.builtins -> Prims.string) =
               (fun a -> fun b1 -> Prims.strcat a (Prims.strcat "," b1))
               uu___2 "}" in
           Prims.strcat "{" uu___1 in
-        Prims.strcat "" (Prims.strcat uu___ "")
-    | Structs.EXCEPTION s -> Prims.strcat "EXCEPTION: " (Prims.strcat s "")
+        Prims.strcat "DICT:" (Prims.strcat uu___ "")
     | Structs.FUNCTION fo ->
         let uu___ = print_pyObj fo.Structs.func_name in
-        Prims.strcat "FUNCTION: " (Prims.strcat uu___ "")
-    | uu___ -> "Not printable"
-let (print_program_state : Structs.vm -> Structs.pyObj -> Prims.string) =
+        Prims.strcat "FUNCTION:" (Prims.strcat uu___ "")
+    | Structs.EXCEPTION s -> Prims.strcat "EXCEPTION:" (Prims.strcat s "")
+    | Structs.USERDEF -> "USERDEF:"
+    | Structs.NONE -> "NONE:None"
+and (print_codeObj : Structs.codeObj -> Prims.string) =
+  fun co ->
+    let constansts_string =
+      let uu___ =
+        let uu___1 =
+          let uu___2 = FStar_List.map print_pyObj co.Structs.co_consts in
+          FStar_List.fold_right
+            (fun a -> fun b -> Prims.strcat a (Prims.strcat "," b)) uu___2
+            "]" in
+        Prims.strcat "[" uu___1 in
+      Prims.strcat "CONSTANTS:" (Prims.strcat uu___ "") in
+    let varnames_string =
+      let uu___ =
+        let uu___1 =
+          FStar_List.fold_right
+            (fun a -> fun b -> Prims.strcat a (Prims.strcat "," b))
+            co.Structs.co_varnames "]" in
+        Prims.strcat "[" uu___1 in
+      Prims.strcat "VARNAMES:" (Prims.strcat uu___ "") in
+    let names_string =
+      let uu___ =
+        let uu___1 =
+          FStar_List.fold_right
+            (fun a -> fun b -> Prims.strcat a (Prims.strcat "," b))
+            co.Structs.co_names "]" in
+        Prims.strcat "[" uu___1 in
+      Prims.strcat "NAMES:" (Prims.strcat uu___ "") in
+    Prims.strcat
+      (Prims.strcat (Prims.strcat "[" (Prims.strcat constansts_string ", "))
+         (Prims.strcat varnames_string ", ")) (Prims.strcat names_string "]")
+and (print_program_state : Structs.vm -> Structs.pyObj -> Prims.string) =
   fun state ->
     fun result ->
       let result_string =
         let uu___ = print_pyObj result in
-        Prims.strcat "" (Prims.strcat uu___ "") in
-      let constansts_string =
-        let uu___ =
-          let uu___1 =
-            let uu___2 =
-              FStar_List.map print_pyObj
-                (state.Structs.code).Structs.co_consts in
-            FStar_List.fold_right
-              (fun a -> fun b -> Prims.strcat a (Prims.strcat "," b)) uu___2
-              "]" in
-          Prims.strcat "[" uu___1 in
-        Prims.strcat "" (Prims.strcat uu___ "") in
-      let varnames_string =
-        let uu___ =
-          let uu___1 =
-            FStar_List.fold_right
-              (fun a -> fun b -> Prims.strcat a (Prims.strcat "," b))
-              (state.Structs.code).Structs.co_varnames "]" in
-          Prims.strcat "[" uu___1 in
-        Prims.strcat "" (Prims.strcat uu___ "") in
-      let names_string =
-        let uu___ =
-          let uu___1 =
-            FStar_List.fold_right
-              (fun a ->
-                 fun b ->
-                   Prims.strcat "'"
-                     (Prims.strcat a (Prims.strcat "'" (Prims.strcat "," b))))
-              (state.Structs.code).Structs.co_names "]" in
-          Prims.strcat "[" uu___1 in
-        Prims.strcat "" (Prims.strcat uu___ "") in
-      Prims.strcat
-        (Prims.strcat
-           (Prims.strcat
-              (Prims.strcat "" (Prims.strcat result_string "\n---\n"))
-              (Prims.strcat constansts_string "\n---\n"))
-           (Prims.strcat varnames_string "\n---\n"))
-        (Prims.strcat names_string "")
+        Prims.strcat "RESULT:" (Prims.strcat uu___ "") in
+      let co_string = print_codeObj state.Structs.code in
+      Prims.strcat (Prims.strcat "STATE:[" (Prims.strcat result_string ", "))
+        (Prims.strcat co_string "]")
 let rec (subString_pos' :
   FStar_String.char Prims.list ->
     Prims.int -> FStar_String.char FStar_Pervasives_Native.option)
