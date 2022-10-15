@@ -1038,7 +1038,7 @@ let rec runFrame virM frame =
   (* Check if we spawn a new frame*)
   match result with
   | FRAMEOBJECT newFrame ->
-    let resultStack = {resultFrame with dataStack = List.tail resultFrame.dataStack} in
+    let resultFrame = {resultFrame with dataStack = List.tail resultFrame.dataStack} in
     let newVM = {virM with callStack = resultFrame::(virM.callStack)} in
     runFrame newVM newFrame
   | _ -> 

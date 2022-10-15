@@ -5,6 +5,4 @@ def top_level():
     def test2():
         return 3
     
-    x = test()
-    y = test2()
-    return (x * y)
+    return (test() * test2())

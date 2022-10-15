@@ -2132,7 +2132,7 @@ let rec (runFrame :
       let result = FStar_List.hd resultFrame.Structs.dataStack in
       match result with
       | Structs.FRAMEOBJECT newFrame ->
-          let resultStack =
+          let resultFrame1 =
             let uu___ = FStar_List.tail resultFrame.Structs.dataStack in
             {
               Structs.dataStack = uu___;
@@ -2147,7 +2147,7 @@ let rec (runFrame :
             } in
           let newVM =
             {
-              Structs.callStack = (resultFrame :: (virM.Structs.callStack));
+              Structs.callStack = (resultFrame1 :: (virM.Structs.callStack));
               Structs.code = (virM.Structs.code);
               Structs.vmpid = (virM.Structs.vmpid);
               Structs.idCount = (virM.Structs.idCount);
@@ -2156,14 +2156,13 @@ let rec (runFrame :
           runFrame newVM newFrame
       | uu___ ->
           let new_globals = resultFrame.Structs.f_globals in
-          let popVM = virM in
           if
-            (FStar_List_Tot_Base.length popVM.Structs.callStack) =
+            (FStar_List_Tot_Base.length virM.Structs.callStack) =
               Prims.int_zero
-          then (popVM, result)
+          then (virM, result)
           else
-            (let callerFrame = FStar_List.hd popVM.Structs.callStack in
-             let newCallStack = FStar_List.tail popVM.Structs.callStack in
+            (let callerFrame = FStar_List.hd virM.Structs.callStack in
+             let newCallStack = FStar_List.tail virM.Structs.callStack in
              let newCallerFrame =
                {
                  Structs.dataStack = (result ::
@@ -2180,9 +2179,9 @@ let rec (runFrame :
              let newVM =
                {
                  Structs.callStack = newCallStack;
-                 Structs.code = (popVM.Structs.code);
-                 Structs.vmpid = (popVM.Structs.vmpid);
-                 Structs.idCount = (popVM.Structs.idCount);
-                 Structs.usedIds = (popVM.Structs.usedIds)
+                 Structs.code = (virM.Structs.code);
+                 Structs.vmpid = (virM.Structs.vmpid);
+                 Structs.idCount = (virM.Structs.idCount);
+                 Structs.usedIds = (virM.Structs.usedIds)
                } in
              runFrame newVM newCallerFrame)
