@@ -236,7 +236,7 @@ let (binary_multiply : Structs.pyObj Prims.list -> Structs.pyObj Prims.list)
         let uu___ = FStar_List_Tot_Base.splitAt (Prims.of_int (2)) dataStack in
         (match uu___ with
          | (uu___1, newDataStack) ->
-             (match (tos, tos11) with
+             (match (tos11, tos) with
               | (Structs.PYTYP obj1, Structs.PYTYP obj2) ->
                   (match FStar_Map.sel obj1.Structs.methods "__mul__" with
                    | Structs.BINFUNBLT f ->
@@ -264,7 +264,7 @@ let (binary_floor_divide :
         let uu___ = FStar_List_Tot_Base.splitAt (Prims.of_int (2)) dataStack in
         (match uu___ with
          | (uu___1, newDataStack) ->
-             (match (tos, tos11) with
+             (match (tos11, tos) with
               | (Structs.PYTYP obj1, Structs.PYTYP obj2) ->
                   (match FStar_Map.sel obj1.Structs.methods "__floordiv__"
                    with
@@ -293,7 +293,7 @@ let (binary_modulo : Structs.pyObj Prims.list -> Structs.pyObj Prims.list) =
         let uu___ = FStar_List_Tot_Base.splitAt (Prims.of_int (2)) dataStack in
         (match uu___ with
          | (uu___1, newDataStack) ->
-             (match (tos, tos11) with
+             (match (tos11, tos) with
               | (Structs.PYTYP obj1, Structs.PYTYP obj2) ->
                   (match FStar_Map.sel obj1.Structs.methods "__mod__" with
                    | Structs.BINFUNBLT f ->
@@ -319,7 +319,7 @@ let (binary_add : Structs.pyObj Prims.list -> Structs.pyObj Prims.list) =
         let uu___ = FStar_List_Tot_Base.splitAt (Prims.of_int (2)) dataStack in
         (match uu___ with
          | (uu___1, newDataStack) ->
-             (match (tos, tos11) with
+             (match (tos11, tos) with
               | (Structs.PYTYP obj1, Structs.PYTYP obj2) ->
                   (match FStar_Map.sel obj1.Structs.methods "__add__" with
                    | Structs.BINFUNBLT f ->
@@ -346,7 +346,7 @@ let (binary_subtract : Structs.pyObj Prims.list -> Structs.pyObj Prims.list)
         let uu___ = FStar_List_Tot_Base.splitAt (Prims.of_int (2)) dataStack in
         (match uu___ with
          | (uu___1, newDataStack) ->
-             (match (tos, tos11) with
+             (match (tos11, tos) with
               | (Structs.PYTYP obj1, Structs.PYTYP obj2) ->
                   (match FStar_Map.sel obj1.Structs.methods "__sub__" with
                    | Structs.BINFUNBLT f ->
@@ -399,7 +399,9 @@ let (build_tuple :
            | FStar_Pervasives_Native.None ->
                (Utils.undefinedBehavior "build_tuple") :: dataStack
            | FStar_Pervasives_Native.Some l ->
-               (Structs.PYTYP (PyTuple.createTuple l)) :: newDataStack)
+               (Structs.PYTYP
+                  (PyTuple.createTuple (FStar_List_Tot_Base.rev l)))
+               :: newDataStack)
 let (build_list :
   Prims.nat -> Structs.pyObj Prims.list -> Structs.pyObj Prims.list) =
   fun i ->
@@ -411,7 +413,8 @@ let (build_list :
            | FStar_Pervasives_Native.None ->
                (Utils.undefinedBehavior "build_list") :: dataStack
            | FStar_Pervasives_Native.Some l ->
-               (Structs.PYTYP (PyList.createList l)) :: newDataStack)
+               (Structs.PYTYP (PyList.createList (FStar_List_Tot_Base.rev l)))
+               :: newDataStack)
 let (build_map :
   Prims.nat -> Structs.pyObj Prims.list -> Structs.pyObj Prims.list) =
   fun count ->
@@ -863,57 +866,39 @@ let (make_function :
                        Structs.func_closure =
                          (if flags = (Prims.of_int (8))
                           then
-                            match newDataStack with
-                            | [] ->
-                                Utils.undefinedBehavior
-                                  "make_function_func_closure_1"
-                            | uu___2 ->
-                                (match FStar_List_Tot_Base.hd newDataStack
-                                 with
-                                 | Structs.PYTYP obj ->
-                                     (match obj.Structs.value with
-                                      | Structs.TUPLE t ->
-                                          Structs.PYTYP
-                                            (PyTuple.createTuple t)
-                                      | uu___3 ->
-                                          Utils.undefinedBehavior
-                                            "make_function_func_closure_2")
-                                 | uu___3 ->
+                            match FStar_List_Tot_Base.hd newDataStack with
+                            | Structs.PYTYP obj ->
+                                (match obj.Structs.value with
+                                 | Structs.TUPLE t ->
+                                     Structs.PYTYP (PyTuple.createTuple t)
+                                 | uu___2 ->
                                      Utils.undefinedBehavior
-                                       "make_function_func_closure_3")
+                                       "make_function_func_closure_2")
+                            | uu___2 ->
+                                Utils.undefinedBehavior
+                                  "make_function_func_closure_3"
                           else Structs.PYTYP (PyNone.createNone ()));
                        Structs.func_defaults =
                          (if flags = Prims.int_one
                           then
-                            match newDataStack with
-                            | [] ->
-                                Utils.undefinedBehavior
-                                  "make_function_func_defaults_1"
-                            | uu___2 ->
-                                (match FStar_List_Tot_Base.hd newDataStack
-                                 with
-                                 | Structs.PYTYP obj ->
-                                     (match obj.Structs.value with
-                                      | Structs.TUPLE t ->
-                                          Structs.PYTYP
-                                            (PyTuple.createTuple t)
-                                      | uu___3 ->
-                                          Utils.undefinedBehavior
-                                            "make_function_func_defaults_2")
-                                 | uu___3 ->
+                            match FStar_List_Tot_Base.hd newDataStack with
+                            | Structs.PYTYP obj ->
+                                (match obj.Structs.value with
+                                 | Structs.TUPLE t ->
+                                     Structs.PYTYP (PyTuple.createTuple t)
+                                 | uu___2 ->
                                      Utils.undefinedBehavior
-                                       "make_function_func_defaults_3")
+                                       "make_function_func_defaults_2")
+                            | uu___2 ->
+                                Utils.undefinedBehavior
+                                  "make_function_func_defaults_3"
                           else Structs.PYTYP (PyNone.createNone ()))
                      } in
                  (match flags with
                   | uu___2 when uu___2 = Prims.int_zero ->
                       (Structs.PYTYP func) :: newDataStack
-                  | uu___2 ->
-                      (match newDataStack with
-                       | [] -> (Utils.undefinedBehavior "make_function_2") ::
-                           dataStack
-                       | uu___3 -> (Structs.PYTYP func) ::
-                           (FStar_List_Tot_Base.tail newDataStack))))
+                  | uu___2 -> (Structs.PYTYP func) ::
+                      (FStar_List_Tot_Base.tail newDataStack)))
         | uu___ -> (Utils.undefinedBehavior "make_function_3") :: dataStack
 let rec (execBytecode : Structs.frameObj -> Structs.frameObj) =
   fun frame ->
@@ -1455,6 +1440,174 @@ let rec (execBytecode : Structs.frameObj -> Structs.frameObj) =
                          Structs.f_usedIds = (frame.Structs.f_usedIds)
                        })
               | Structs.BINARY_SUBSCR ->
+                  if
+                    (FStar_List_Tot_Base.length frame.Structs.dataStack) >=
+                      (Prims.of_int (2))
+                  then
+                    let newDataStack =
+                      binary_subtract frame.Structs.dataStack in
+                    execBytecode
+                      {
+                        Structs.dataStack = newDataStack;
+                        Structs.blockStack = (frame.Structs.blockStack);
+                        Structs.fCode = (frame.Structs.fCode);
+                        Structs.pc = (frame.Structs.pc + Prims.int_one);
+                        Structs.f_localplus = (frame.Structs.f_localplus);
+                        Structs.f_globals = (frame.Structs.f_globals);
+                        Structs.f_locals = (frame.Structs.f_locals);
+                        Structs.f_idCount = (frame.Structs.f_idCount);
+                        Structs.f_usedIds = (frame.Structs.f_usedIds)
+                      }
+                  else
+                    (let newDataStack =
+                       [Utils.undefinedBehavior "BINARY_SUBSCR"] in
+                     execBytecode
+                       {
+                         Structs.dataStack = newDataStack;
+                         Structs.blockStack = (frame.Structs.blockStack);
+                         Structs.fCode = (frame.Structs.fCode);
+                         Structs.pc = (frame.Structs.pc + Prims.int_one);
+                         Structs.f_localplus = (frame.Structs.f_localplus);
+                         Structs.f_globals = (frame.Structs.f_globals);
+                         Structs.f_locals = (frame.Structs.f_locals);
+                         Structs.f_idCount = (frame.Structs.f_idCount);
+                         Structs.f_usedIds = (frame.Structs.f_usedIds)
+                       })
+              | Structs.INPLACE_MULTIPLY ->
+                  if
+                    (FStar_List_Tot_Base.length frame.Structs.dataStack) >=
+                      (Prims.of_int (2))
+                  then
+                    let newDataStack =
+                      binary_multiply frame.Structs.dataStack in
+                    execBytecode
+                      {
+                        Structs.dataStack = newDataStack;
+                        Structs.blockStack = (frame.Structs.blockStack);
+                        Structs.fCode = (frame.Structs.fCode);
+                        Structs.pc = (frame.Structs.pc + Prims.int_one);
+                        Structs.f_localplus = (frame.Structs.f_localplus);
+                        Structs.f_globals = (frame.Structs.f_globals);
+                        Structs.f_locals = (frame.Structs.f_locals);
+                        Structs.f_idCount = (frame.Structs.f_idCount);
+                        Structs.f_usedIds = (frame.Structs.f_usedIds)
+                      }
+                  else
+                    (let newDataStack =
+                       [Utils.undefinedBehavior "BINARY_MULTIPLY"] in
+                     execBytecode
+                       {
+                         Structs.dataStack = newDataStack;
+                         Structs.blockStack = (frame.Structs.blockStack);
+                         Structs.fCode = (frame.Structs.fCode);
+                         Structs.pc = (frame.Structs.pc + Prims.int_one);
+                         Structs.f_localplus = (frame.Structs.f_localplus);
+                         Structs.f_globals = (frame.Structs.f_globals);
+                         Structs.f_locals = (frame.Structs.f_locals);
+                         Structs.f_idCount = (frame.Structs.f_idCount);
+                         Structs.f_usedIds = (frame.Structs.f_usedIds)
+                       })
+              | Structs.INPLACE_FLOOR_DIVIDE ->
+                  if
+                    (FStar_List_Tot_Base.length frame.Structs.dataStack) >=
+                      (Prims.of_int (2))
+                  then
+                    let newDataStack =
+                      binary_floor_divide frame.Structs.dataStack in
+                    execBytecode
+                      {
+                        Structs.dataStack = newDataStack;
+                        Structs.blockStack = (frame.Structs.blockStack);
+                        Structs.fCode = (frame.Structs.fCode);
+                        Structs.pc = (frame.Structs.pc + Prims.int_one);
+                        Structs.f_localplus = (frame.Structs.f_localplus);
+                        Structs.f_globals = (frame.Structs.f_globals);
+                        Structs.f_locals = (frame.Structs.f_locals);
+                        Structs.f_idCount = (frame.Structs.f_idCount);
+                        Structs.f_usedIds = (frame.Structs.f_usedIds)
+                      }
+                  else
+                    (let newDataStack =
+                       [Utils.undefinedBehavior "BINARY_FLOOR_DIVIDE"] in
+                     execBytecode
+                       {
+                         Structs.dataStack = newDataStack;
+                         Structs.blockStack = (frame.Structs.blockStack);
+                         Structs.fCode = (frame.Structs.fCode);
+                         Structs.pc = (frame.Structs.pc + Prims.int_one);
+                         Structs.f_localplus = (frame.Structs.f_localplus);
+                         Structs.f_globals = (frame.Structs.f_globals);
+                         Structs.f_locals = (frame.Structs.f_locals);
+                         Structs.f_idCount = (frame.Structs.f_idCount);
+                         Structs.f_usedIds = (frame.Structs.f_usedIds)
+                       })
+              | Structs.INPLACE_MODULO ->
+                  if
+                    (FStar_List_Tot_Base.length frame.Structs.dataStack) >=
+                      (Prims.of_int (2))
+                  then
+                    let newDataStack = binary_modulo frame.Structs.dataStack in
+                    execBytecode
+                      {
+                        Structs.dataStack = newDataStack;
+                        Structs.blockStack = (frame.Structs.blockStack);
+                        Structs.fCode = (frame.Structs.fCode);
+                        Structs.pc = (frame.Structs.pc + Prims.int_one);
+                        Structs.f_localplus = (frame.Structs.f_localplus);
+                        Structs.f_globals = (frame.Structs.f_globals);
+                        Structs.f_locals = (frame.Structs.f_locals);
+                        Structs.f_idCount = (frame.Structs.f_idCount);
+                        Structs.f_usedIds = (frame.Structs.f_usedIds)
+                      }
+                  else
+                    (let newDataStack =
+                       [Utils.undefinedBehavior "BINARY_MODULO"] in
+                     execBytecode
+                       {
+                         Structs.dataStack = newDataStack;
+                         Structs.blockStack = (frame.Structs.blockStack);
+                         Structs.fCode = (frame.Structs.fCode);
+                         Structs.pc = (frame.Structs.pc + Prims.int_one);
+                         Structs.f_localplus = (frame.Structs.f_localplus);
+                         Structs.f_globals = (frame.Structs.f_globals);
+                         Structs.f_locals = (frame.Structs.f_locals);
+                         Structs.f_idCount = (frame.Structs.f_idCount);
+                         Structs.f_usedIds = (frame.Structs.f_usedIds)
+                       })
+              | Structs.INPLACE_ADD ->
+                  if
+                    (FStar_List_Tot_Base.length frame.Structs.dataStack) >=
+                      (Prims.of_int (2))
+                  then
+                    let newDataStack = binary_add frame.Structs.dataStack in
+                    execBytecode
+                      {
+                        Structs.dataStack = newDataStack;
+                        Structs.blockStack = (frame.Structs.blockStack);
+                        Structs.fCode = (frame.Structs.fCode);
+                        Structs.pc = (frame.Structs.pc + Prims.int_one);
+                        Structs.f_localplus = (frame.Structs.f_localplus);
+                        Structs.f_globals = (frame.Structs.f_globals);
+                        Structs.f_locals = (frame.Structs.f_locals);
+                        Structs.f_idCount = (frame.Structs.f_idCount);
+                        Structs.f_usedIds = (frame.Structs.f_usedIds)
+                      }
+                  else
+                    (let newDataStack =
+                       [Utils.undefinedBehavior "BINARY_ADD"] in
+                     execBytecode
+                       {
+                         Structs.dataStack = newDataStack;
+                         Structs.blockStack = (frame.Structs.blockStack);
+                         Structs.fCode = (frame.Structs.fCode);
+                         Structs.pc = (frame.Structs.pc + Prims.int_one);
+                         Structs.f_localplus = (frame.Structs.f_localplus);
+                         Structs.f_globals = (frame.Structs.f_globals);
+                         Structs.f_locals = (frame.Structs.f_locals);
+                         Structs.f_idCount = (frame.Structs.f_idCount);
+                         Structs.f_usedIds = (frame.Structs.f_usedIds)
+                       })
+              | Structs.INPLACE_SUBTRACT ->
                   if
                     (FStar_List_Tot_Base.length frame.Structs.dataStack) >=
                       (Prims.of_int (2))
@@ -2079,24 +2232,65 @@ let rec (execBytecode : Structs.frameObj -> Structs.frameObj) =
                     (FStar_List_Tot_Base.length frame.Structs.dataStack) >=
                       (Prims.of_int (2))
                   then
-                    let newDataStack =
-                      make_function flags frame.Structs.f_globals
-                        frame.Structs.dataStack in
-                    execBytecode
-                      {
-                        Structs.dataStack = newDataStack;
-                        Structs.blockStack = (frame.Structs.blockStack);
-                        Structs.fCode = (frame.Structs.fCode);
-                        Structs.pc = (frame.Structs.pc + Prims.int_one);
-                        Structs.f_localplus = (frame.Structs.f_localplus);
-                        Structs.f_globals = (frame.Structs.f_globals);
-                        Structs.f_locals = (frame.Structs.f_locals);
-                        Structs.f_idCount = (frame.Structs.f_idCount);
-                        Structs.f_usedIds = (frame.Structs.f_usedIds)
-                      }
+                    (if flags <> Prims.int_zero
+                     then
+                       (if
+                          (FStar_List_Tot_Base.length frame.Structs.dataStack)
+                            >= (Prims.of_int (3))
+                        then
+                          let newDataStack =
+                            make_function flags frame.Structs.f_globals
+                              frame.Structs.dataStack in
+                          execBytecode
+                            {
+                              Structs.dataStack = newDataStack;
+                              Structs.blockStack = (frame.Structs.blockStack);
+                              Structs.fCode = (frame.Structs.fCode);
+                              Structs.pc = (frame.Structs.pc + Prims.int_one);
+                              Structs.f_localplus =
+                                (frame.Structs.f_localplus);
+                              Structs.f_globals = (frame.Structs.f_globals);
+                              Structs.f_locals = (frame.Structs.f_locals);
+                              Structs.f_idCount = (frame.Structs.f_idCount);
+                              Structs.f_usedIds = (frame.Structs.f_usedIds)
+                            }
+                        else
+                          (let newDataStack =
+                             [Utils.undefinedBehavior "MAKE_FUNCTION_2"] in
+                           execBytecode
+                             {
+                               Structs.dataStack = newDataStack;
+                               Structs.blockStack =
+                                 (frame.Structs.blockStack);
+                               Structs.fCode = (frame.Structs.fCode);
+                               Structs.pc =
+                                 (frame.Structs.pc + Prims.int_one);
+                               Structs.f_localplus =
+                                 (frame.Structs.f_localplus);
+                               Structs.f_globals = (frame.Structs.f_globals);
+                               Structs.f_locals = (frame.Structs.f_locals);
+                               Structs.f_idCount = (frame.Structs.f_idCount);
+                               Structs.f_usedIds = (frame.Structs.f_usedIds)
+                             }))
+                     else
+                       (let newDataStack =
+                          make_function flags frame.Structs.f_globals
+                            frame.Structs.dataStack in
+                        execBytecode
+                          {
+                            Structs.dataStack = newDataStack;
+                            Structs.blockStack = (frame.Structs.blockStack);
+                            Structs.fCode = (frame.Structs.fCode);
+                            Structs.pc = (frame.Structs.pc + Prims.int_one);
+                            Structs.f_localplus = (frame.Structs.f_localplus);
+                            Structs.f_globals = (frame.Structs.f_globals);
+                            Structs.f_locals = (frame.Structs.f_locals);
+                            Structs.f_idCount = (frame.Structs.f_idCount);
+                            Structs.f_usedIds = (frame.Structs.f_usedIds)
+                          }))
                   else
                     (let newDataStack =
-                       [Utils.undefinedBehavior "MAKE_FUNCTION"] in
+                       [Utils.undefinedBehavior "MAKE_FUNCTION_1"] in
                      execBytecode
                        {
                          Structs.dataStack = newDataStack;

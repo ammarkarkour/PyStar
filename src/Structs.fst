@@ -19,6 +19,11 @@ type opcode =
   | BINARY_ADD: opcode
   | BINARY_SUBTRACT: opcode
   | BINARY_SUBSCR: opcode
+  | INPLACE_MULTIPLY: opcode
+  | INPLACE_FLOOR_DIVIDE: opcode
+  | INPLACE_MODULO: opcode
+  | INPLACE_ADD: opcode
+  | INPLACE_SUBTRACT: opcode
   | STORE_NAME: nat -> opcode
   | LOAD_CONST: nat -> opcode
   | LOAD_NAME: nat -> opcode

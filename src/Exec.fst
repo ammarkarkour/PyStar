@@ -255,7 +255,7 @@ let binary_multiply dataStack  =
   | None -> (undefinedBehavior "binary_multiply_1")::dataStack
   | Some tos1 ->
     let (_, newDataStack) = splitAt 2 dataStack in 
-    match (tos, tos1) with
+    match (tos1, tos) with
     | PYTYP(obj1), PYTYP(obj2) -> 
       (match (Map.sel (obj1.methods) "__mul__") with
       | BINFUNBLT f -> PYTYP(builtinsToPyObj (f(obj1, obj2)) )::newDataStack
@@ -274,7 +274,7 @@ let binary_floor_divide dataStack  =
   | None -> (undefinedBehavior "binary_floor_divide_1")::dataStack
   | Some tos1 ->
     let (_, newDataStack) = splitAt 2 dataStack in 
-    match (tos, tos1) with
+    match (tos1, tos) with
     | PYTYP(obj1), PYTYP(obj2) -> 
       (match (Map.sel (obj1.methods) "__floordiv__") with
       | BINFUNBLT f -> PYTYP(builtinsToPyObj (f(obj1, obj2)) )::newDataStack
@@ -293,7 +293,7 @@ let binary_modulo dataStack =
   | None -> (undefinedBehavior "bianry_modulo_1")::dataStack
   | Some tos1 ->
     let (_, newDataStack) = splitAt 2 dataStack in 
-    match (tos, tos1) with
+    match (tos1, tos) with
     | PYTYP(obj1), PYTYP(obj2) -> 
       (match (Map.sel (obj1.methods) "__mod__") with
       | BINFUNBLT f -> PYTYP(builtinsToPyObj (f(obj1, obj2)) )::newDataStack
@@ -312,7 +312,7 @@ let binary_add dataStack =
   | None -> (undefinedBehavior "binary_add_1")::dataStack
   | Some tos1 ->
     let (_, newDataStack) = splitAt 2 dataStack in
-    match (tos, tos1) with
+    match (tos1, tos) with
     | PYTYP(obj1), PYTYP(obj2) -> 
       (match (Map.sel (obj1.methods) "__add__") with
       | BINFUNBLT f -> PYTYP(builtinsToPyObj (f(obj1, obj2)) )::newDataStack
@@ -331,7 +331,7 @@ let binary_subtract dataStack =
   | None -> (undefinedBehavior "binary_subtract_1")::dataStack
   | Some tos1 ->
     let (_, newDataStack) = splitAt 2 dataStack in 
-    match (tos, tos1) with
+    match (tos1, tos) with
     | PYTYP(obj1), PYTYP(obj2) -> 
       (match (Map.sel (obj1.methods) "__sub__") with
       | BINFUNBLT f -> PYTYP(builtinsToPyObj (f(obj1, obj2)) )::newDataStack
@@ -360,13 +360,13 @@ let binary_subscr dataStack =
 
 (*
   Req: (length(datastack) >= i)
-  Ens: res = (tos, ..., tosi)::datastack[i+1:]
+  Ens: res = (tosi, ..., tos)::datastack[i+1:]
 *)
 let build_tuple i dataStack  =
   let elems, newDataStack  = splitAt i dataStack in
   match unwrapPyObjList elems with
   | None -> (undefinedBehavior "build_tuple")::dataStack
-  | Some l -> PYTYP(createTuple l)::newDataStack
+  | Some l -> PYTYP(createTuple (rev l))::newDataStack
 
 (*
   Req: (length(datastack) >= i)
@@ -376,7 +376,7 @@ let build_list i dataStack  =
   let elems, newDataStack  = splitAt i dataStack in
   match unwrapPyObjList elems with
   | None -> (undefinedBehavior "build_list")::dataStack
-  | Some l -> PYTYP(createList l)::newDataStack
+  | Some l -> PYTYP(createList (rev l))::newDataStack
 
 (*
   Req: (length(datastack) >= 2*conut)
@@ -657,34 +657,25 @@ let make_function flags globs dataStack =
       func_name = qualname;
       func_closure =
         if flags = 8 then
-        (match newDataStack with
-         | [] -> undefinedBehavior "make_function_func_closure_1"
-         | _ ->
          (match hd newDataStack with
           | PYTYP(obj) ->
             (match obj.value with
              | TUPLE(t) -> PYTYP(createTuple t)
              | _ -> undefinedBehavior "make_function_func_closure_2")
-          | _ -> undefinedBehavior "make_function_func_closure_3")) else PYTYP(createNone());
+          | _ -> undefinedBehavior "make_function_func_closure_3") else PYTYP(createNone());
 
       func_defaults =
         if flags = 1 then
-        (match newDataStack with
-         | [] -> undefinedBehavior "make_function_func_defaults_1"
-         | _ ->
-         (match  hd newDataStack with
+         (match hd newDataStack with
           | PYTYP(obj) ->
             (match obj.value with
              | TUPLE(t) -> PYTYP(createTuple t)
              | _ -> undefinedBehavior "make_function_func_defaults_2")
-          | _ -> undefinedBehavior "make_function_func_defaults_3")) else PYTYP(createNone());
+          | _ -> undefinedBehavior "make_function_func_defaults_3") else PYTYP(createNone());
     }) in
     (match flags with
      | 0 -> PYTYP(func)::newDataStack
-     | _ -> 
-     (match newDataStack with
-      | [] -> (undefinedBehavior "make_function_2")::dataStack
-      | _ -> PYTYP(func)::(tail newDataStack)))
+     | _ -> PYTYP(func)::(tail newDataStack))
   | _ -> (undefinedBehavior "make_function_3")::dataStack 
 
 (*
@@ -853,7 +844,52 @@ let rec execBytecode frame  =
           execBytecode ({frame with dataStack = newDataStack; pc = frame.pc+1})
       | true ->
         let newDataStack = binary_subtract (frame.dataStack) in
-          execBytecode ({frame with dataStack = newDataStack; pc = frame.pc+1})) 
+          execBytecode ({frame with dataStack = newDataStack; pc = frame.pc+1}))
+
+    | INPLACE_MULTIPLY ->
+      (match length frame.dataStack >= 2 with
+      | false ->
+        let newDataStack = [undefinedBehavior "BINARY_MULTIPLY"] in
+          execBytecode ({frame with dataStack = newDataStack; pc = frame.pc+1})
+      | true ->
+        let newDataStack = binary_multiply (frame.dataStack) in
+          execBytecode ({frame with dataStack = newDataStack; pc = frame.pc+1}))
+      
+    | INPLACE_FLOOR_DIVIDE ->
+      (match length frame.dataStack >= 2 with
+      | false ->
+        let newDataStack = [undefinedBehavior "BINARY_FLOOR_DIVIDE"] in
+          execBytecode ({frame with dataStack = newDataStack; pc = frame.pc+1})
+      | true ->
+        let newDataStack = binary_floor_divide (frame.dataStack) in
+          execBytecode ({frame with dataStack = newDataStack; pc = frame.pc+1}))
+          
+    | INPLACE_MODULO ->
+      (match length frame.dataStack >= 2 with
+      | false ->
+        let newDataStack = [undefinedBehavior "BINARY_MODULO"] in
+          execBytecode ({frame with dataStack = newDataStack; pc = frame.pc+1})
+      | true ->
+        let newDataStack = binary_modulo (frame.dataStack) in
+          execBytecode ({frame with dataStack = newDataStack; pc = frame.pc+1}))
+          
+    | INPLACE_ADD ->
+      (match length frame.dataStack >= 2 with
+      | false ->
+        let newDataStack = [undefinedBehavior "BINARY_ADD"] in
+          execBytecode ({frame with dataStack = newDataStack; pc = frame.pc+1})
+      | true ->
+        let newDataStack = binary_add (frame.dataStack) in
+          execBytecode ({frame with dataStack = newDataStack; pc = frame.pc+1}))
+    
+    | INPLACE_SUBTRACT ->
+      (match length frame.dataStack >= 2 with
+      | false ->
+        let newDataStack = [undefinedBehavior "BINARY_SUBSCR"] in
+          execBytecode ({frame with dataStack = newDataStack; pc = frame.pc+1})
+      | true ->
+        let newDataStack = binary_subtract (frame.dataStack) in
+          execBytecode ({frame with dataStack = newDataStack; pc = frame.pc+1}))
     
     | LOAD_CONST(i) ->
       (match length frame.fCode.co_consts > i with
@@ -1015,12 +1051,20 @@ let rec execBytecode frame  =
     | MAKE_FUNCTION(flags) ->
       (match length frame.dataStack >= 2 with
       | false ->
-        let newDataStack = [undefinedBehavior "MAKE_FUNCTION"] in
-          execBytecode ({frame with dataStack = newDataStack; pc = frame.pc+1})
+        let newDataStack = [undefinedBehavior "MAKE_FUNCTION_1"] in
+          execBytecode {frame with dataStack = newDataStack; pc = frame.pc+1}
       | true ->
-        let newDataStack = make_function flags (frame.f_globals)
-                                               (frame.dataStack) in
-          execBytecode ({frame with dataStack = newDataStack; pc = frame.pc+1}))
+        (if flags <> 0 then
+          (match length frame.dataStack >= 3 with 
+          | false -> 
+            let newDataStack = [undefinedBehavior "MAKE_FUNCTION_2"] in
+              execBytecode {frame with dataStack = newDataStack; pc = frame.pc+1}
+          | true -> 
+             let newDataStack = make_function flags (frame.f_globals) (frame.dataStack) in
+               execBytecode {frame with dataStack = newDataStack; pc = frame.pc+1})
+         else
+           let newDataStack = make_function flags (frame.f_globals) (frame.dataStack) in
+             execBytecode {frame with dataStack = newDataStack; pc = frame.pc+1}))
     | _ -> 
       let newDataStack = [undefinedBehavior "INSTRUCTION_NOT_SUPPORTED"] in
         execBytecode ({frame with dataStack = newDataStack; pc = frame.pc+1})

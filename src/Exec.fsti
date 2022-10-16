@@ -107,7 +107,9 @@ val store_fast: (i:nat) -> (l1:list pyObj {length l1 >= i})
                        -> (l2:list pyObj {Cons? l2}) 
                        -> Tot (list pyObj * list pyObj)
 
-val make_function: nat -> (Map.t string pyObj) -> (l:list pyObj {length l >= 2})
+val make_function: (i:nat) -> (Map.t string pyObj) -> (l:list pyObj {if i = 0
+                                                                 then length l >= 2
+                                                                 else length l >= 3})
                       -> Tot (list pyObj)
 
 val execBytecode: frameObj  -> All.ML (frameObj)

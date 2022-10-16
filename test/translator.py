@@ -44,12 +44,13 @@ class Translator:
         """
         if x == None:
             return 'createNone()'
+        elif isinstance(x, bool):
+            x = 'true' if x else 'false' 
+            return f'createBool {x}'
         elif isinstance(x, int):
             return f'createInt {x}'
         elif isinstance(x, str):
             return f'createString "{x}"'
-        elif isinstance(x, bool):
-            return f'createBool {x}'
         elif isinstance(x, list):
             l = map(lambda y: f'{self.add_cls_cons(y)}; ', x) 
             return f'createList([{l}])'

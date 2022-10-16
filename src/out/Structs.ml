@@ -17,6 +17,11 @@ type opcode =
   | BINARY_ADD 
   | BINARY_SUBTRACT 
   | BINARY_SUBSCR 
+  | INPLACE_MULTIPLY 
+  | INPLACE_FLOOR_DIVIDE 
+  | INPLACE_MODULO 
+  | INPLACE_ADD 
+  | INPLACE_SUBTRACT 
   | STORE_NAME of Prims.nat 
   | LOAD_CONST of Prims.nat 
   | LOAD_NAME of Prims.nat 
@@ -80,6 +85,21 @@ let (uu___is_BINARY_SUBTRACT : opcode -> Prims.bool) =
 let (uu___is_BINARY_SUBSCR : opcode -> Prims.bool) =
   fun projectee ->
     match projectee with | BINARY_SUBSCR -> true | uu___ -> false
+let (uu___is_INPLACE_MULTIPLY : opcode -> Prims.bool) =
+  fun projectee ->
+    match projectee with | INPLACE_MULTIPLY -> true | uu___ -> false
+let (uu___is_INPLACE_FLOOR_DIVIDE : opcode -> Prims.bool) =
+  fun projectee ->
+    match projectee with | INPLACE_FLOOR_DIVIDE -> true | uu___ -> false
+let (uu___is_INPLACE_MODULO : opcode -> Prims.bool) =
+  fun projectee ->
+    match projectee with | INPLACE_MODULO -> true | uu___ -> false
+let (uu___is_INPLACE_ADD : opcode -> Prims.bool) =
+  fun projectee ->
+    match projectee with | INPLACE_ADD -> true | uu___ -> false
+let (uu___is_INPLACE_SUBTRACT : opcode -> Prims.bool) =
+  fun projectee ->
+    match projectee with | INPLACE_SUBTRACT -> true | uu___ -> false
 let (uu___is_STORE_NAME : opcode -> Prims.bool) =
   fun projectee ->
     match projectee with | STORE_NAME _0 -> true | uu___ -> false
