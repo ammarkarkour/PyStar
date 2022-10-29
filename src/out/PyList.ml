@@ -143,7 +143,68 @@ let (createList : Structs.cls Prims.list -> Structs.cls) =
                         | Structs.BOOL b1 -> Structs.BOOL b1
                         | uu___1 -> Structs.EXCEPTION "List Error")
                    | uu___1 -> Structs.EXCEPTION "List Error"))) in
-    let allMethods = ge in
+    let subscr =
+      FStar_Map.upd ge "__subscr__"
+        (Structs.BINFUNBLT
+           (fun uu___ ->
+              match uu___ with
+              | (a, b) ->
+                  (match ((a.Structs.value), (b.Structs.value)) with
+                   | (Structs.LIST l1, Structs.INT i) ->
+                       let l_len = FStar_List_Tot_Base.length l1 in
+                       if i >= Prims.int_zero
+                       then
+                         (if i < l_len
+                          then
+                            match Utils.nth_int l1 i with
+                            | FStar_Pervasives_Native.None ->
+                                Structs.EXCEPTION "List error"
+                            | FStar_Pervasives_Native.Some c ->
+                                c.Structs.value
+                          else Structs.EXCEPTION "List Error")
+                       else
+                         (let new_i = l_len + i in
+                          if new_i < l_len
+                          then
+                            match Utils.nth_int l1 new_i with
+                            | FStar_Pervasives_Native.None ->
+                                Structs.EXCEPTION "List error"
+                            | FStar_Pervasives_Native.Some c ->
+                                c.Structs.value
+                          else Structs.EXCEPTION "List error")
+                   | (Structs.LIST l1, Structs.SLICE (start, stop, step)) ->
+                       let step1 =
+                         match step with
+                         | FStar_Pervasives_Native.None -> Prims.int_one
+                         | FStar_Pervasives_Native.Some s -> s in
+                       (match step1 with
+                        | uu___1 when uu___1 = Prims.int_zero ->
+                            Structs.EXCEPTION "List Error"
+                        | uu___1 ->
+                            if
+                              (start <> FStar_Pervasives_Native.None) &&
+                                (start = stop)
+                            then Structs.LIST []
+                            else
+                              (let l_len = FStar_List_Tot_Base.length l1 in
+                               let start1 =
+                                 match start with
+                                 | FStar_Pervasives_Native.None ->
+                                     if step1 < Prims.int_zero
+                                     then l_len - Prims.int_one
+                                     else Prims.int_zero
+                                 | FStar_Pervasives_Native.Some s -> s in
+                               let stop1 =
+                                 match stop with
+                                 | FStar_Pervasives_Native.None ->
+                                     if step1 < Prims.int_zero
+                                     then (Prims.of_int (-1))
+                                     else l_len
+                                 | FStar_Pervasives_Native.Some s -> s in
+                               Structs.LIST
+                                 (Utils.get_slice l1 start1 stop1 step1)))
+                   | uu___1 -> Structs.EXCEPTION "List Error"))) in
+    let allMethods = subscr in
     let obj =
       {
         Structs.name = "list";

@@ -9,3 +9,4 @@ include PyNone
 include PyString
 include PyTuple
 include PyException
+include PySlice

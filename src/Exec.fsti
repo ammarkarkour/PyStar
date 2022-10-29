@@ -112,6 +112,8 @@ val make_function: (i:nat) -> (Map.t string pyObj) -> (l:list pyObj {if i = 0
                                                                  else length l >= 3})
                       -> Tot (list pyObj)
 
+val build_slice: (i:nat {i = 2 || i =3}) -> (l:list pyObj {length l >= i}) -> Tot (list pyObj)
+
 val execBytecode: frameObj  -> All.ML (frameObj)
 
 val runFrame: vm -> frameObj -> All.ML (vm * pyObj)

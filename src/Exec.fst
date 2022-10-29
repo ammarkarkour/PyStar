@@ -26,6 +26,7 @@ Notaion:
    | EXCEPTION s -> createException s
    | NONE -> createNone ()
    | USERDEF -> createException "Creating_userdefined Error"
+   | SLICE s1 s2 s3 -> createSlice s1 s2 s3
   
 (* Create a new frame and push it in the frame stack *)
 let makeFrame virM code localplus global_names local_names =
@@ -226,9 +227,10 @@ let unary_not datastack  =
       | FUNCTION f -> false
       | EXCEPTION s -> false
       | USERDEF -> false
-      | NONE -> true) in PYTYP(createBool res )::newDataStack
+      | NONE -> true
+      | SLICE s1 s2 s3 -> false) in PYTYP(createBool res )::newDataStack
   | _ -> (undefinedBehavior "unary_not")::newDataStack
-
+  
 (*
    Req: length(datastack) >= 1
    Ens: res = iter(tos)::datastack[2:]
@@ -679,6 +681,45 @@ let make_function flags globs dataStack =
   | _ -> (undefinedBehavior "make_function_3")::dataStack 
 
 (*
+  Req: i = 2 and (length(datastack) >= 2) or i = 3 and (length(datastack) >= 3)
+  Ens: if i = 2 then slice(TOS1, TOS)::datastack[2:] else slice(TOS2, TOS1, TOS)::datastack[3:]
+*)
+let build_slice i dataStack  =
+  let tos = (hd dataStack) in
+  let tos1 = (nth dataStack 1) in
+  let _, newDataStack  = splitAt i dataStack in
+  match tos1 with
+  | Some tos1 ->
+    (match tos, tos1 with
+    | PYTYP tos, PYTYP tos1 ->
+      (match ((isNone tos.value) || (isInt tos.value)) &&
+             ((isNone tos1.value) || (isInt tos1.value)) with
+      | false -> (undefinedBehavior "build_slice_1")::dataStack
+      | true ->
+        let tos = match tos.value with
+          | INT s -> Some s
+          | NONE -> None in
+        let tos1 = match tos1.value with
+          | INT s -> Some s
+          | NONE -> None in
+        
+        (match i=2 with
+        | true -> PYTYP(builtinsToPyObj (SLICE tos1 tos None))::newDataStack
+        | false ->
+          (match (nth dataStack 2) with
+          | Some (PYTYP tos2) ->
+            (match isNone tos2.value || isInt tos2.value with
+            | true ->
+              let tos2 = match tos2.value with
+                | INT s -> Some s
+                | NONE -> None in
+              PYTYP(builtinsToPyObj (SLICE tos2 tos1 tos))::newDataStack
+            | false ->(undefinedBehavior "build_slice_2")::dataStack)
+          | _ -> (undefinedBehavior "build_slice_3")::dataStack )))
+    | _ -> (undefinedBehavior "build_slice_4")::dataStack)
+  | None -> (undefinedBehavior "build_slice_5")::dataStack
+  
+(*
    Req: len(frame.fcode.bytecode) >= 1
 *)
 let rec execBytecode frame  =
@@ -843,7 +884,7 @@ let rec execBytecode frame  =
         let newDataStack = [undefinedBehavior "BINARY_SUBSCR"] in
           execBytecode ({frame with dataStack = newDataStack; pc = frame.pc+1})
       | true ->
-        let newDataStack = binary_subtract (frame.dataStack) in
+        let newDataStack = binary_subscr (frame.dataStack) in
           execBytecode ({frame with dataStack = newDataStack; pc = frame.pc+1}))
 
     | INPLACE_MULTIPLY ->
@@ -1065,6 +1106,16 @@ let rec execBytecode frame  =
          else
            let newDataStack = make_function flags (frame.f_globals) (frame.dataStack) in
              execBytecode {frame with dataStack = newDataStack; pc = frame.pc+1}))
+    
+    | BUILD_SLICE(i) ->
+      (match (length frame.dataStack >= i) && (i = 2 || i = 3) with
+      | false ->
+        let newDataStack = [undefinedBehavior "BUILD_SLICE_1"] in
+          execBytecode {frame with dataStack = newDataStack; pc = frame.pc+1}
+      | true ->
+        let newDataStack = build_slice i (frame.dataStack) in
+          execBytecode ({frame with dataStack = newDataStack; pc = frame.pc+1}))
+    
     | _ -> 
       let newDataStack = [undefinedBehavior "INSTRUCTION_NOT_SUPPORTED"] in
         execBytecode ({frame with dataStack = newDataStack; pc = frame.pc+1})

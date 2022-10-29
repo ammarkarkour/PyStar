@@ -162,7 +162,20 @@ let (createString : Prims.string -> Structs.cls) =
                             Structs.BOOL true
                         | uu___1 -> Structs.BOOL false)
                    | uu___1 -> Structs.EXCEPTION "String Error"))) in
-    let allMethods = ge in
+    let subscr =
+      FStar_Map.upd ge "__subscr__"
+        (Structs.BINFUNBLT
+           (fun uu___ ->
+              match uu___ with
+              | (a, b) ->
+                  (match ((a.Structs.value), (b.Structs.value)) with
+                   | (Structs.STRING s1, Structs.INT i) ->
+                       (match Utils.subString_pos s1 i with
+                        | FStar_Pervasives_Native.Some c -> Structs.STRING c
+                        | FStar_Pervasives_Native.None ->
+                            Structs.EXCEPTION "String Error")
+                   | uu___1 -> Structs.EXCEPTION "String Error"))) in
+    let allMethods = subscr in
     let obj =
       {
         Structs.name = "str";

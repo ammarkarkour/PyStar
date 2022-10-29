@@ -35,7 +35,7 @@ endif
 
 include $(FSTAR_ULIB)/ml/Makefile.include
 
-all: structs utils pyexception pybool pylist pydict pyfunction pyint pynone pystring pytuple pybuiltinobjects exec vm ocaml
+all: structs utils pyexception pybool pylist pydict pyfunction pyint pynone pystring pytuple pyslice pybuiltinobjects exec vm ocaml
 
 vm: out VM.fst
 	$(FSTAR) $(FSTAR_DEFAULT_ARGS) --extract 'VM' --odir out --codegen OCaml VM.fst #--record_hints
@@ -80,6 +80,9 @@ pytuple: out PyTuple.fst
 pyexception: out PyException.fst
 	$(FSTAR) $(FSTAR_DEFAULT_ARGS) --extract 'PyException' --odir out --codegen OCaml PyException.fst #--record_hints
 
+pyslice: out PySlice.fst
+	$(FSTAR) $(FSTAR_DEFAULT_ARGS) --extract 'PySlice' --odir out --codegen OCaml PySlice.fst #--record_hints
+
 pybuiltinobjects: out PyBuiltinObjects.fst
 	$(FSTAR) $(FSTAR_DEFAULT_ARGS) --extract 'PyBuiltinObjects' --odir out --codegen OCaml PyBuiltinObjects.fst #--record_hints
 
@@ -93,10 +96,10 @@ out:
 	mkdir -p out
 
 ocaml: out/Structs.ml out/Exec.ml out/VM.ml
-	cd out; $(OCAMLOPT) Structs.ml Utils.ml PyException.ml PyBool.ml PyList.ml PyDict.ml PyFunction.ml PyInt.ml PyNone.ml PyString.ml PyTuple.ml PyBuiltinObjects.ml Exec.ml VM.ml
+	cd out; $(OCAMLOPT) Structs.ml Utils.ml PyException.ml PyBool.ml PyList.ml PyDict.ml PyFunction.ml PyInt.ml PyNone.ml PyString.ml PyTuple.ml PySlice.ml PyBuiltinObjects.ml Exec.ml VM.ml
 
 autotestCompile:
-	cd out; $(OCAMLOPT) Structs.ml Utils.ml PyException.ml PyBool.ml PyList.ml PyDict.ml PyFunction.ml PyInt.ml PyNone.ml PyString.ml PyTuple.ml PyBuiltinObjects.ml Exec.ml VM.ml $(NAME).ml -o $(NAME).exe
+	cd out; $(OCAMLOPT) Structs.ml Utils.ml PyException.ml PyBool.ml PyList.ml PyDict.ml PyFunction.ml PyInt.ml PyNone.ml PyString.ml PyTuple.ml PySlice.ml PyBuiltinObjects.ml Exec.ml VM.ml $(NAME).ml -o $(NAME).exe
 
 clean:
 	rm -rf out *~ *.exe

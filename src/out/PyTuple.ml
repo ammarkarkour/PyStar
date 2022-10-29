@@ -143,7 +143,37 @@ let (createTuple : Structs.cls Prims.list -> Structs.cls) =
                         | Structs.BOOL b1 -> Structs.BOOL b1
                         | uu___1 -> Structs.EXCEPTION "Tuple Error")
                    | uu___1 -> Structs.EXCEPTION "Tuple Error"))) in
-    let allMethods = ge in
+    let subscr =
+      FStar_Map.upd ge "__subscr__"
+        (Structs.BINFUNBLT
+           (fun uu___ ->
+              match uu___ with
+              | (a, b) ->
+                  (match ((a.Structs.value), (b.Structs.value)) with
+                   | (Structs.TUPLE l1, Structs.INT i) ->
+                       let l_len = FStar_List_Tot_Base.length l1 in
+                       if i >= Prims.int_zero
+                       then
+                         (if i < l_len
+                          then
+                            match Utils.nth_int l1 i with
+                            | FStar_Pervasives_Native.None ->
+                                Structs.EXCEPTION "Tuple error"
+                            | FStar_Pervasives_Native.Some c ->
+                                c.Structs.value
+                          else Structs.EXCEPTION "Tuple Error")
+                       else
+                         (let new_i = l_len + i in
+                          if new_i < l_len
+                          then
+                            match Utils.nth_int l1 new_i with
+                            | FStar_Pervasives_Native.None ->
+                                Structs.EXCEPTION "Tuple error"
+                            | FStar_Pervasives_Native.Some c ->
+                                c.Structs.value
+                          else Structs.EXCEPTION "Tuple error")
+                   | uu___1 -> Structs.EXCEPTION "Tuple Error"))) in
+    let allMethods = subscr in
     let obj =
       {
         Structs.name = "tuple";

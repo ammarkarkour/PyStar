@@ -56,7 +56,8 @@ and print_builtin (b: builtins): All.ML string =
   | EXCEPTION s -> Printf.sprintf "EXCEPTION:%s" s  
   | USERDEF -> "USERDEF:"
   | NONE -> "NONE:None"
-
+  | SLICE s1 s2 s3 -> "SLICE"
+  
 and print_codeObj (co: codeObj): All.ML string = 
   let constansts_string = Printf.sprintf "CONSTANTS:%s" 
       ("[" ^ (List.fold_right (fun a b -> a ^ "," ^ b) (List.map print_pyObj (co.co_consts)) "]")) in
@@ -71,17 +72,17 @@ and print_program_state (state: vm) (result: pyObj): All.ML string =
   let co_string = print_codeObj state.code in
   Printf.sprintf "STATE:[%s, %s]" result_string co_string
 
-let rec subString_pos' (cl: list String.char) (i: int): All.ML (option String.char) =
+let rec subString_pos' (cl: list String.char) (i: int): (option String.char) =
   match cl with
   | [] -> None
   | x::cl' -> if i=0 then Some x else if i < 0 then None else (subString_pos' cl' (i-1))
 
-let subString_pos (s: string) (i: int): All.ML (option string) =
+let subString_pos (s: string) (i: int): option string =
   match (subString_pos' (String.list_of_string s) i) with
   | None -> None
   | Some c -> Some (String.string_of_char c)
 
-let subString_neg (s: string) (i: int): All.ML (option string) = subString_pos s ((String.length s) + i)
+let subString_neg (s: string) (i: int): (option string) = subString_pos s ((String.length s) + i)
 
 let rec tabulate' (#a:Type) (f: nat -> a) (i: nat): list a =
   match i with
@@ -133,6 +134,16 @@ let rec list_contains (l: list cls) (x: cls) =
   match l with
   | [] -> false
   | h::l -> (objEq x h) || (list_contains l x)
+
+let isInt (i: builtins): bool =
+  match i with
+  | INT _ -> true
+  | _ -> false
+
+let isNone (n: builtins): bool =
+  match n with
+  | NONE -> true
+  | _ -> false
 
 (*-----------------------------------------------------------*)
 (*-------------- Python lex List Comparision ----------------*)
@@ -241,6 +252,38 @@ let rec list_lex_ge l1 l2 =
         | true -> BOOL(false))
       | _ -> NONE)
     | err -> NONE)
+
+let rec nth_int (l: list 'a) (i:int) =
+  match l with
+  | [] -> None
+  | x::l' ->
+    (match i with
+    | 0 -> Some x
+    | _ ->
+      (match 0 <= i && i < List.length l with
+      | false -> None
+      | true -> nth_int l' (i-1)))
+
+let rec get_slice_p l index start stop (step: int{step > 0}) = 
+  match l with
+  | [] -> []
+  | x::l' ->
+    match start < stop with
+    | true ->
+      (match index = start with
+      | true -> x::(get_slice_p l' (index+1) (start+step) stop step)
+      | false -> get_slice_p l' (index+1) start stop step)
+    | _ -> []
+
+let get_slice_n l start stop (step: int{step < 0}) =
+  let new_l = List.Tot.Base.rev l in
+  let l_len = List.length l in
+    get_slice_p new_l 0 (l_len-1-start) (l_len-1-stop) (op_Multiply step (-1))
+
+let get_slice l start stop (step: int{step <> 0}) = 
+  match step > 0 with
+  | true -> get_slice_p l 0 start stop step
+  | false -> get_slice_n l start stop step
 
 (*----------------------------------------------------------*)
 

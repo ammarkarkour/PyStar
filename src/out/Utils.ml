@@ -84,6 +84,7 @@ and (print_builtin : Structs.builtins -> Prims.string) =
     | Structs.EXCEPTION s -> Prims.strcat "EXCEPTION:" (Prims.strcat s "")
     | Structs.USERDEF -> "USERDEF:"
     | Structs.NONE -> "NONE:None"
+    | Structs.SLICE (s1, s2, s3) -> "SLICE"
 and (print_codeObj : Structs.codeObj -> Prims.string) =
   fun co ->
     let constansts_string =
@@ -142,8 +143,7 @@ let (subString_pos :
   Prims.string -> Prims.int -> Prims.string FStar_Pervasives_Native.option) =
   fun s ->
     fun i ->
-      let uu___ = subString_pos' (FStar_String.list_of_string s) i in
-      match uu___ with
+      match subString_pos' (FStar_String.list_of_string s) i with
       | FStar_Pervasives_Native.None -> FStar_Pervasives_Native.None
       | FStar_Pervasives_Native.Some c ->
           FStar_Pervasives_Native.Some (FStar_String.string_of_char c)
@@ -199,6 +199,10 @@ let rec (list_contains : Structs.cls Prims.list -> Structs.cls -> Prims.bool)
       match l with
       | [] -> false
       | h::l1 -> (objEq x h) || (list_contains l1 x)
+let (isInt : Structs.builtins -> Prims.bool) =
+  fun i -> match i with | Structs.INT uu___ -> true | uu___ -> false
+let (isNone : Structs.builtins -> Prims.bool) =
+  fun n -> match n with | Structs.NONE -> true | uu___ -> false
 let rec (list_lex_lt :
   Structs.cls Prims.list -> Structs.cls Prims.list -> Structs.builtins) =
   fun l1 ->
@@ -301,6 +305,69 @@ let rec (list_lex_ge :
                     if b then Structs.BOOL false else list_lex_ge l11 l21
                 | uu___ -> Structs.NONE)
            | err -> Structs.NONE)
+let rec nth_int :
+  'a . 'a Prims.list -> Prims.int -> 'a FStar_Pervasives_Native.option =
+  fun l ->
+    fun i ->
+      match l with
+      | [] -> FStar_Pervasives_Native.None
+      | x::l' ->
+          (match i with
+           | uu___ when uu___ = Prims.int_zero ->
+               FStar_Pervasives_Native.Some x
+           | uu___ ->
+               if
+                 (Prims.int_zero <= i) &&
+                   (i < (FStar_List_Tot_Base.length l))
+               then nth_int l' (i - Prims.int_one)
+               else FStar_Pervasives_Native.None)
+let rec get_slice_p :
+  'uuuuu .
+    'uuuuu Prims.list ->
+      Prims.int -> Prims.int -> Prims.int -> Prims.int -> 'uuuuu Prims.list
+  =
+  fun l ->
+    fun index ->
+      fun start ->
+        fun stop ->
+          fun step ->
+            match l with
+            | [] -> []
+            | x::l' ->
+                if start < stop
+                then
+                  (if index = start
+                   then x ::
+                     (get_slice_p l' (index + Prims.int_one) (start + step)
+                        stop step)
+                   else
+                     get_slice_p l' (index + Prims.int_one) start stop step)
+                else []
+let get_slice_n :
+  'uuuuu .
+    'uuuuu Prims.list ->
+      Prims.int -> Prims.int -> Prims.int -> 'uuuuu Prims.list
+  =
+  fun l ->
+    fun start ->
+      fun stop ->
+        fun step ->
+          let new_l = FStar_List_Tot_Base.rev l in
+          let l_len = FStar_List_Tot_Base.length l in
+          get_slice_p new_l Prims.int_zero ((l_len - Prims.int_one) - start)
+            ((l_len - Prims.int_one) - stop) (step * (Prims.of_int (-1)))
+let get_slice :
+  'uuuuu .
+    'uuuuu Prims.list ->
+      Prims.int -> Prims.int -> Prims.int -> 'uuuuu Prims.list
+  =
+  fun l ->
+    fun start ->
+      fun stop ->
+        fun step ->
+          if step > Prims.int_zero
+          then get_slice_p l Prims.int_zero start stop step
+          else get_slice_n l start stop step
 let (emptyMap : (Prims.string, Structs.pyObj) FStar_Map.t) =
   FStar_Map.const (Structs.ERR "UNDEFINED")
 let (undefinedBehavior : Prims.string -> Structs.pyObj) =

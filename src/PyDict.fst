@@ -98,7 +98,7 @@ let createDict (vkl: list (cls * cls)) =
           | DICT(vkl1), key ->
             (match List.Tot.Base.find (fun x -> match x with | v, k -> objEq b k) vkl1 with
             | None -> EXCEPTION "Dictionary Error"
-            | Some (v, k) -> k.value)
+            | Some (v, k) -> v.value)
           | _ -> EXCEPTION "Dictionary Error")) in
 
     let keys = Map.upd emptyMap "keys" (PYTYP(createList kl)) in

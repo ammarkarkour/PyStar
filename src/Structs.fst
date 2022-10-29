@@ -46,6 +46,7 @@ type opcode =
   | RETURN_VALUE: opcode
   | CALL_FUNCTION: nat -> opcode
   | MAKE_FUNCTION: nat -> opcode
+  | BUILD_SLICE: nat -> opcode
 
 noeq type bytecode = 
   | CODE: l: list opcode -> bytecode
@@ -72,6 +73,7 @@ noeq type builtins =
   | DICT: list (cls * cls) -> builtins
   | FUNCTION: functionObj -> builtins
   | EXCEPTION: string -> builtins
+  | SLICE: option int -> option int -> option int -> builtins
   | USERDEF
   | NONE
 

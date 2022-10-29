@@ -118,8 +118,58 @@ let createList (l: list cls) =
           | BOOL(b) -> BOOL b
           | _ -> EXCEPTION "List Error")
         | _ -> EXCEPTION "List Error")) in
-        
-  let allMethods = ge in
+
+  let subscr =
+      Map.upd ge "__subscr__"
+        (BINFUNBLT (fun (a, b) ->
+          match (a.value, b.value) with
+          | LIST(l), INT(i) ->
+            let l_len = List.length l in
+            (match i >= 0 with
+            | false ->
+              (let new_i = l_len + i in
+              match new_i < l_len with
+              | true ->
+                (match nth_int l new_i with
+                | None -> EXCEPTION "List error"
+                | Some c -> c.value)
+              | false -> EXCEPTION "List error")
+            
+            | true  ->
+              (match i < l_len with
+              | true -> 
+                (match nth_int l i with
+                | None -> EXCEPTION "List error"
+                | Some c -> c.value)
+              
+              | false -> EXCEPTION "List Error"))
+          
+          | LIST(l), SLICE start stop step ->
+            let step =
+              (match step with
+              | None -> 1
+              | Some s -> s) in
+            (match step with
+            | 0 -> EXCEPTION "List Error" (*S1*)
+            | _ ->
+              (match start <> None && start = stop with
+              | true -> LIST [] (*S2*)
+              | false ->
+                let l_len = List.length l in
+                (* set the lower bound *)
+                let start =
+                  (match start with
+                  | None -> if step < 0 then l_len - 1 else 0
+                  | Some s -> s) in
+                (* set the upper bound *)
+                let stop =
+                  (match stop with
+                  | None -> if step < 0 then -1 else l_len 
+                  | Some s -> s) in
+               LIST( get_slice l start stop step)))
+          | _ -> EXCEPTION "List Error")) in
+
+  let allMethods = subscr in
   let obj: cls = {
     name = "list";
     pid = 0;
@@ -127,4 +177,3 @@ let createList (l: list cls) =
     fields = emptyMap;
     methods = allMethods
   } in obj
-

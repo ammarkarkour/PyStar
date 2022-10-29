@@ -117,8 +117,32 @@ let createTuple (l: list cls) =
           | BOOL(b) -> BOOL b
           | _ -> EXCEPTION "Tuple Error")
         | _ -> EXCEPTION "Tuple Error")) in
+  
+  let subscr =
+      Map.upd ge "__subscr__"
+        (BINFUNBLT (fun (a, b) ->
+          match (a.value, b.value) with
+          | TUPLE(l), INT(i) ->
+            let l_len = List.length l in
+            (match i >= 0 with
+            | false ->
+              (let new_i = l_len + i in
+              match new_i < l_len with
+              | true ->
+                (match nth_int l new_i with
+                | None -> EXCEPTION "Tuple error"
+                | Some c -> c.value)
+              | false -> EXCEPTION "Tuple error")
+            | true  ->
+              (match i < l_len with
+              | true -> 
+                (match nth_int l i with
+                | None -> EXCEPTION "Tuple error"
+                | Some c -> c.value)
+              | false -> EXCEPTION "Tuple Error"))
+          | _ -> EXCEPTION "Tuple Error")) in
         
-  let allMethods = ge in
+  let allMethods = subscr in
   let obj: cls = {
     name = "tuple";
     pid = 0;

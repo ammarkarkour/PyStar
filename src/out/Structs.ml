@@ -43,6 +43,7 @@ type opcode =
   | RETURN_VALUE 
   | CALL_FUNCTION of Prims.nat 
   | MAKE_FUNCTION of Prims.nat 
+  | BUILD_SLICE of Prims.nat 
 let (uu___is_NOP : opcode -> Prims.bool) =
   fun projectee -> match projectee with | NOP -> true | uu___ -> false
 let (uu___is_POP_TOP : opcode -> Prims.bool) =
@@ -203,6 +204,11 @@ let (uu___is_MAKE_FUNCTION : opcode -> Prims.bool) =
     match projectee with | MAKE_FUNCTION _0 -> true | uu___ -> false
 let (__proj__MAKE_FUNCTION__item___0 : opcode -> Prims.nat) =
   fun projectee -> match projectee with | MAKE_FUNCTION _0 -> _0
+let (uu___is_BUILD_SLICE : opcode -> Prims.bool) =
+  fun projectee ->
+    match projectee with | BUILD_SLICE _0 -> true | uu___ -> false
+let (__proj__BUILD_SLICE__item___0 : opcode -> Prims.nat) =
+  fun projectee -> match projectee with | BUILD_SLICE _0 -> _0
 type bytecode =
   | CODE of opcode Prims.list 
 let (uu___is_CODE : bytecode -> Prims.bool) = fun projectee -> true
@@ -234,6 +240,8 @@ type builtins =
   | DICT of (cls * cls) Prims.list 
   | FUNCTION of functionObj 
   | EXCEPTION of Prims.string 
+  | SLICE of Prims.int FStar_Pervasives_Native.option * Prims.int
+  FStar_Pervasives_Native.option * Prims.int FStar_Pervasives_Native.option 
   | USERDEF 
   | NONE 
 and cls =
@@ -313,6 +321,18 @@ let (uu___is_EXCEPTION : builtins -> Prims.bool) =
     match projectee with | EXCEPTION _0 -> true | uu___ -> false
 let (__proj__EXCEPTION__item___0 : builtins -> Prims.string) =
   fun projectee -> match projectee with | EXCEPTION _0 -> _0
+let (uu___is_SLICE : builtins -> Prims.bool) =
+  fun projectee ->
+    match projectee with | SLICE (_0, _1, _2) -> true | uu___ -> false
+let (__proj__SLICE__item___0 :
+  builtins -> Prims.int FStar_Pervasives_Native.option) =
+  fun projectee -> match projectee with | SLICE (_0, _1, _2) -> _0
+let (__proj__SLICE__item___1 :
+  builtins -> Prims.int FStar_Pervasives_Native.option) =
+  fun projectee -> match projectee with | SLICE (_0, _1, _2) -> _1
+let (__proj__SLICE__item___2 :
+  builtins -> Prims.int FStar_Pervasives_Native.option) =
+  fun projectee -> match projectee with | SLICE (_0, _1, _2) -> _2
 let (uu___is_USERDEF : builtins -> Prims.bool) =
   fun projectee -> match projectee with | USERDEF -> true | uu___ -> false
 let (uu___is_NONE : builtins -> Prims.bool) =

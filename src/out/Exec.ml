@@ -13,6 +13,7 @@ let (builtinsToPyObj : Structs.builtins -> Structs.cls) =
     | Structs.NONE -> PyNone.createNone ()
     | Structs.USERDEF ->
         PyException.createException "Creating_userdefined Error"
+    | Structs.SLICE (s1, s2, s3) -> PySlice.createSlice s1 s2 s3
 let (makeFrame :
   Structs.vm ->
     Structs.codeObj ->
@@ -207,7 +208,8 @@ let (unary_not : Structs.pyObj Prims.list -> Structs.pyObj Prims.list) =
           | Structs.FUNCTION f -> false
           | Structs.EXCEPTION s -> false
           | Structs.USERDEF -> false
-          | Structs.NONE -> true in
+          | Structs.NONE -> true
+          | Structs.SLICE (s1, s2, s3) -> false in
         (Structs.PYTYP (PyBool.createBool res)) :: newDataStack
     | uu___ -> (Utils.undefinedBehavior "unary_not") :: newDataStack
 let (get_iter : Structs.pyObj Prims.list -> Structs.pyObj Prims.list) =
@@ -900,6 +902,73 @@ let (make_function :
                   | uu___2 -> (Structs.PYTYP func) ::
                       (FStar_List_Tot_Base.tail newDataStack)))
         | uu___ -> (Utils.undefinedBehavior "make_function_3") :: dataStack
+let (build_slice :
+  Prims.nat -> Structs.pyObj Prims.list -> Structs.pyObj Prims.list) =
+  fun i ->
+    fun dataStack ->
+      let tos = FStar_List_Tot_Base.hd dataStack in
+      let tos1 = FStar_List_Tot_Base.nth dataStack Prims.int_one in
+      let tos2 = FStar_List_Tot_Base.nth dataStack (Prims.of_int (2)) in
+      let uu___ = FStar_List_Tot_Base.splitAt i dataStack in
+      match uu___ with
+      | (uu___1, newDataStack) ->
+          (match tos1 with
+           | FStar_Pervasives_Native.Some tos11 ->
+               (match (tos, tos11) with
+                | (Structs.PYTYP tos3, Structs.PYTYP tos12) ->
+                    if
+                      ((Utils.isNone tos3.Structs.value) ||
+                         (Utils.isInt tos3.Structs.value))
+                        &&
+                        ((Utils.isNone tos12.Structs.value) ||
+                           (Utils.isInt tos12.Structs.value))
+                    then
+                      let tos4 =
+                        match tos3.Structs.value with
+                        | Structs.INT s -> FStar_Pervasives_Native.Some s
+                        | Structs.NONE -> FStar_Pervasives_Native.None in
+                      let tos13 =
+                        match tos12.Structs.value with
+                        | Structs.INT s -> FStar_Pervasives_Native.Some s
+                        | Structs.NONE -> FStar_Pervasives_Native.None in
+                      (if i = (Prims.of_int (2))
+                       then
+                         (Structs.PYTYP
+                            (builtinsToPyObj
+                               (Structs.SLICE
+                                  (tos13, tos4, FStar_Pervasives_Native.None))))
+                         :: newDataStack
+                       else
+                         (match FStar_List_Tot_Base.nth dataStack
+                                  (Prims.of_int (2))
+                          with
+                          | FStar_Pervasives_Native.Some (Structs.PYTYP
+                              tos21) ->
+                              if
+                                (Utils.isNone tos21.Structs.value) ||
+                                  (Utils.isInt tos21.Structs.value)
+                              then
+                                let tos22 =
+                                  match tos21.Structs.value with
+                                  | Structs.INT s ->
+                                      FStar_Pervasives_Native.Some s
+                                  | Structs.NONE ->
+                                      FStar_Pervasives_Native.None in
+                                (Structs.PYTYP
+                                   (builtinsToPyObj
+                                      (Structs.SLICE (tos22, tos13, tos4))))
+                                  :: newDataStack
+                              else (Utils.undefinedBehavior "build_slice_2")
+                                :: dataStack
+                          | uu___2 ->
+                              (Utils.undefinedBehavior "build_slice_3") ::
+                              dataStack))
+                    else (Utils.undefinedBehavior "build_slice_1") ::
+                      dataStack
+                | uu___2 -> (Utils.undefinedBehavior "build_slice_4") ::
+                    dataStack)
+           | FStar_Pervasives_Native.None ->
+               (Utils.undefinedBehavior "build_slice_5") :: dataStack)
 let rec (execBytecode : Structs.frameObj -> Structs.frameObj) =
   fun frame ->
     let uu___ = Utils.check_err frame.Structs.dataStack in
@@ -1444,8 +1513,7 @@ let rec (execBytecode : Structs.frameObj -> Structs.frameObj) =
                     (FStar_List_Tot_Base.length frame.Structs.dataStack) >=
                       (Prims.of_int (2))
                   then
-                    let newDataStack =
-                      binary_subtract frame.Structs.dataStack in
+                    let newDataStack = binary_subscr frame.Structs.dataStack in
                     execBytecode
                       {
                         Structs.dataStack = newDataStack;
@@ -2291,6 +2359,41 @@ let rec (execBytecode : Structs.frameObj -> Structs.frameObj) =
                   else
                     (let newDataStack =
                        [Utils.undefinedBehavior "MAKE_FUNCTION_1"] in
+                     execBytecode
+                       {
+                         Structs.dataStack = newDataStack;
+                         Structs.blockStack = (frame.Structs.blockStack);
+                         Structs.fCode = (frame.Structs.fCode);
+                         Structs.pc = (frame.Structs.pc + Prims.int_one);
+                         Structs.f_localplus = (frame.Structs.f_localplus);
+                         Structs.f_globals = (frame.Structs.f_globals);
+                         Structs.f_locals = (frame.Structs.f_locals);
+                         Structs.f_idCount = (frame.Structs.f_idCount);
+                         Structs.f_usedIds = (frame.Structs.f_usedIds)
+                       })
+              | Structs.BUILD_SLICE i ->
+                  if
+                    ((FStar_List_Tot_Base.length frame.Structs.dataStack) >=
+                       i)
+                      &&
+                      ((i = (Prims.of_int (2))) || (i = (Prims.of_int (3))))
+                  then
+                    let newDataStack = build_slice i frame.Structs.dataStack in
+                    execBytecode
+                      {
+                        Structs.dataStack = newDataStack;
+                        Structs.blockStack = (frame.Structs.blockStack);
+                        Structs.fCode = (frame.Structs.fCode);
+                        Structs.pc = (frame.Structs.pc + Prims.int_one);
+                        Structs.f_localplus = (frame.Structs.f_localplus);
+                        Structs.f_globals = (frame.Structs.f_globals);
+                        Structs.f_locals = (frame.Structs.f_locals);
+                        Structs.f_idCount = (frame.Structs.f_idCount);
+                        Structs.f_usedIds = (frame.Structs.f_usedIds)
+                      }
+                  else
+                    (let newDataStack =
+                       [Utils.undefinedBehavior "BUILD_SLICE_1"] in
                      execBytecode
                        {
                          Structs.dataStack = newDataStack;

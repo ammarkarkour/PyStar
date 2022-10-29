@@ -131,7 +131,7 @@ let (createDict : (Structs.cls * Structs.cls) Prims.list -> Structs.cls) =
                               | FStar_Pervasives_Native.None ->
                                   Structs.EXCEPTION "Dictionary Error"
                               | FStar_Pervasives_Native.Some (v, k) ->
-                                  k.Structs.value)
+                                  v.Structs.value)
                          | uu___2 -> Structs.EXCEPTION "Dictionary Error"))) in
           let keys =
             FStar_Map.upd Utils.emptyMap "keys"

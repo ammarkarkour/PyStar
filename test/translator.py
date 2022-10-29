@@ -48,15 +48,18 @@ class Translator:
             x = 'true' if x else 'false' 
             return f'createBool {x}'
         elif isinstance(x, int):
+            x = x if x >= 0 else f'({x})'
             return f'createInt {x}'
         elif isinstance(x, str):
             return f'createString "{x}"'
         elif isinstance(x, list):
-            l = map(lambda y: f'{self.add_cls_cons(y)}; ', x) 
-            return f'createList([{l}])'
+            l = list(map(lambda y: f'{self.add_cls_cons(y)}; ', x)) 
+            l = f'[{"".join(l)}]'
+            return f'createList({l})'
         elif isinstance(x, tuple):
-            t = map(lambda y: f'{self.add_cls_cons(y)}; ', x) 
-            return f'createTuple([{t}])'
+            t = list(map(lambda y: f'{self.add_cls_cons(y)}; ', x)) 
+            t = f'[{"".join(t)}]'
+            return f'createTuple({t})'
         elif isinstance(x, dict):
             keys = list(x.keys())
             values = list(x.values())

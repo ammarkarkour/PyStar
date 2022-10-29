@@ -125,8 +125,18 @@ let createString (s: string) =
           | 1 -> BOOL true
           | _ -> BOOL false)
         | _ -> EXCEPTION "String Error")) in
-  
-  let allMethods = ge in
+
+  let subscr =
+      Map.upd ge "__subscr__"
+        (BINFUNBLT (fun (a, b) ->
+          match (a.value, b.value) with
+          | STRING(s), INT(i) ->
+            (match subString_pos s i with
+            | Some c -> STRING c
+            | None -> EXCEPTION "String Error")
+          | _ -> EXCEPTION "String Error")) in
+          
+  let allMethods = subscr in
   let obj: cls = {
     name = "str";
     pid = 0;
