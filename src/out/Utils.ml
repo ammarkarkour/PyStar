@@ -112,9 +112,31 @@ and (print_codeObj : Structs.codeObj -> Prims.string) =
             co.Structs.co_names "]" in
         Prims.strcat "[" uu___1 in
       Prims.strcat "NAMES:" (Prims.strcat uu___ "") in
+    let cellvars_string =
+      let uu___ =
+        let uu___1 =
+          FStar_List.fold_right
+            (fun a -> fun b -> Prims.strcat a (Prims.strcat "," b))
+            co.Structs.co_cellvars "]" in
+        Prims.strcat "[" uu___1 in
+      Prims.strcat "CELLVARS:" (Prims.strcat uu___ "") in
+    let freevars_string =
+      let uu___ =
+        let uu___1 =
+          FStar_List.fold_right
+            (fun a -> fun b -> Prims.strcat a (Prims.strcat "," b))
+            co.Structs.co_freevars "]" in
+        Prims.strcat "[" uu___1 in
+      Prims.strcat "FREEVARS:" (Prims.strcat uu___ "") in
     Prims.strcat
-      (Prims.strcat (Prims.strcat "[" (Prims.strcat constansts_string ", "))
-         (Prims.strcat varnames_string ", ")) (Prims.strcat names_string "]")
+      (Prims.strcat
+         (Prims.strcat
+            (Prims.strcat
+               (Prims.strcat "[" (Prims.strcat constansts_string ", "))
+               (Prims.strcat varnames_string ", "))
+            (Prims.strcat names_string ", "))
+         (Prims.strcat cellvars_string ", "))
+      (Prims.strcat freevars_string "]")
 and (print_program_state : Structs.vm -> Structs.pyObj -> Prims.string) =
   fun state ->
     fun result ->
@@ -369,7 +391,7 @@ let get_slice :
           then get_slice_p l Prims.int_zero start stop step
           else get_slice_n l start stop step
 let (emptyMap : (Prims.string, Structs.pyObj) FStar_Map.t) =
-  FStar_Map.const (Structs.ERR "UNDEFINED")
+  FStar_Map.const (Structs.ERR "UNDEFINED NAME")
 let (undefinedBehavior : Prims.string -> Structs.pyObj) =
   fun s ->
     Structs.ERR

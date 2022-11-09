@@ -29,7 +29,7 @@ Notaion:
    | SLICE s1 s2 s3 -> createSlice s1 s2 s3
   
 (* Create a new frame and push it in the frame stack *)
-let makeFrame virM code localplus global_names local_names =
+let makeFrame virM code localplus global_names local_names cell_objects =
   let frame: frameObj = {
     dataStack = []; 
     blockStack = [];
@@ -38,6 +38,7 @@ let makeFrame virM code localplus global_names local_names =
     pc = 0;
     f_globals = global_names;
     f_locals = local_names;
+    f_cells = cell_objects;
     f_idCount = virM.idCount;
     f_usedIds = virM.usedIds
   } in
@@ -65,7 +66,8 @@ let call_function i dataStack id usedIds =
             f_localplus = localplus;
             pc = 0;
             f_globals = func.func_globals;
-            f_locals = emptyMap;
+            f_locals = func.func_cells;
+            f_cells = func.func_cells;
             f_idCount = id;
             f_usedIds = usedIds
           } in (FRAMEOBJECT newFrame)::restStack)
@@ -643,10 +645,58 @@ let store_fast i localplus dataStack =
       (newLocalPlus, newDataStack) 
 
 (*
+  Req: 
+  Ens: res = f_locals[name]::datastack  ||
+       res = f_globals[name]::datastack ||
+       res = exception::datastack
+*)
+let load_closure name f_locals f_globals dataStack  =
+  match name with
+  | None -> (undefinedBehavior "load_closure")::dataStack
+  | Some name ->
+    (match Map.contains f_locals name with
+    | true -> (Map.sel f_locals name)::dataStack 
+    | false ->
+      (match Map.contains f_globals name with
+       | true -> (Map.sel f_globals name)::dataStack
+       | false -> PYTYP(createException ("name: " ^ name ^ "is not defined"))::dataStack))
+
+(*
+  Req: 
+  Ens: res = f_locals[name]::datastack  ||
+       res = f_globals[name]::datastack ||
+       res = exception::datastack
+*)
+let load_deref name f_locals f_globals dataStack  =
+  match name with
+  | None -> (undefinedBehavior "load_deref")::dataStack
+  | Some name ->
+    (match Map.contains f_locals name with
+    | true -> (Map.sel f_locals name)::dataStack 
+    | false ->
+      (match Map.contains f_globals name with
+       | true -> (Map.sel f_globals name)::dataStack
+       | false -> PYTYP(createException ("name: " ^ name ^ "is not defined"))::dataStack))
+
+(*
+  Req: 
+  Ens: res = (f_locals with f_locals[name] = tos, datastack[1:])
+*)
+let store_deref name f_locals f_cells dataStack = 
+  let tos = hd dataStack in
+  match name with
+  | None -> (f_locals, f_cells, (undefinedBehavior "store_deref")::dataStack)
+  | Some name ->
+    let _, newDataStack = splitAt 1 dataStack in 
+    let newLocals = Map.upd f_locals name tos in
+    let newCells = Map.upd f_cells name tos in
+    (newLocals, newCells, newDataStack)
+    
+(*
   Req:
   Ens:
 *)
-let make_function flags globs dataStack =
+let make_function flags globs cells dataStack =
   let qualname = hd dataStack in
   let codeobj = nth dataStack 1 in
   match codeobj with
@@ -656,6 +706,7 @@ let make_function flags globs dataStack =
     let func = createFunction ({
       func_Code = CODEOBJECT co;
       func_globals = globs;
+      func_cells = cells;
       func_name = qualname;
       func_closure =
         if flags = 8 then
@@ -1089,6 +1140,45 @@ let rec execBytecode frame  =
                                     pc = frame.pc+1;
                                     f_localplus = newLocalPlus}))
                                 
+    | LOAD_CLOSURE(i) ->
+      let len_co_cellvars = length frame.fCode.co_cellvars in 
+      let name = 
+        match i <  len_co_cellvars with
+        | true -> nth frame.fCode.co_cellvars i
+        | false -> nth frame.fCode.co_freevars (i - len_co_cellvars) in
+      let newDataStack = load_closure name (frame.f_locals)
+                         (frame.f_globals) (frame.dataStack) in
+          execBytecode ({frame with dataStack = newDataStack; pc = frame.pc+1})
+    
+    | LOAD_DEREF(i) ->
+      let len_co_cellvars = length frame.fCode.co_cellvars in 
+      let name = 
+        match i <  len_co_cellvars with
+        | true -> nth frame.fCode.co_cellvars i
+        | false -> nth frame.fCode.co_freevars (i - len_co_cellvars) in
+      let newDataStack = load_deref name (frame.f_locals)
+                         (frame.f_globals) (frame.dataStack) in
+          execBytecode ({frame with dataStack = newDataStack; pc = frame.pc+1})
+    
+    | STORE_DEREF(i) ->
+      let len_co_cellvars = length frame.fCode.co_cellvars in 
+      let name = 
+        match i <  len_co_cellvars with
+        | true -> nth frame.fCode.co_cellvars i
+        | false -> nth frame.fCode.co_freevars (i - len_co_cellvars) in
+      
+     (match length frame.dataStack >= 1 with
+      | false ->
+        let newDataStack = [undefinedBehavior "STORE_DEREF"] in
+          execBytecode ({frame with dataStack = newDataStack; pc = frame.pc+1})
+      | true ->
+        let newLocals, newCells, newDataStack = 
+          store_deref name (frame.f_locals) (frame.f_cells) (frame.dataStack) in
+            execBytecode ({frame with dataStack = newDataStack; 
+                                             pc = frame.pc+1;
+                                       f_locals = newLocals;
+                                        f_cells = newCells}))
+    
     | MAKE_FUNCTION(flags) ->
       (match length frame.dataStack >= 2 with
       | false ->
@@ -1101,11 +1191,13 @@ let rec execBytecode frame  =
             let newDataStack = [undefinedBehavior "MAKE_FUNCTION_2"] in
               execBytecode {frame with dataStack = newDataStack; pc = frame.pc+1}
           | true -> 
-             let newDataStack = make_function flags (frame.f_globals) (frame.dataStack) in
-               execBytecode {frame with dataStack = newDataStack; pc = frame.pc+1})
+             let newDataStack = 
+               make_function flags (frame.f_globals) (frame.f_cells) (frame.dataStack) in
+                 execBytecode {frame with dataStack = newDataStack; pc = frame.pc+1})
          else
-           let newDataStack = make_function flags (frame.f_globals) (frame.dataStack) in
-             execBytecode {frame with dataStack = newDataStack; pc = frame.pc+1}))
+           let newDataStack =
+             make_function flags (frame.f_globals) (frame.f_cells) (frame.dataStack) in
+               execBytecode {frame with dataStack = newDataStack; pc = frame.pc+1}))
     
     | BUILD_SLICE(i) ->
       (match (length frame.dataStack >= i) && (i = 2 || i = 3) with

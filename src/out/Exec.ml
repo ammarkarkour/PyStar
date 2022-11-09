@@ -20,26 +20,29 @@ let (makeFrame :
       Structs.pyObj Prims.list ->
         (Prims.string, Structs.pyObj) FStar_Map.t ->
           (Prims.string, Structs.pyObj) FStar_Map.t ->
-            (Structs.vm * Structs.frameObj))
+            (Prims.string, Structs.pyObj) FStar_Map.t ->
+              (Structs.vm * Structs.frameObj))
   =
   fun virM ->
     fun code ->
       fun localplus ->
         fun global_names ->
           fun local_names ->
-            let frame =
-              {
-                Structs.dataStack = [];
-                Structs.blockStack = [];
-                Structs.fCode = code;
-                Structs.pc = Prims.int_zero;
-                Structs.f_localplus = localplus;
-                Structs.f_globals = global_names;
-                Structs.f_locals = local_names;
-                Structs.f_idCount = (virM.Structs.idCount);
-                Structs.f_usedIds = (virM.Structs.usedIds)
-              } in
-            (virM, frame)
+            fun cell_objects ->
+              let frame =
+                {
+                  Structs.dataStack = [];
+                  Structs.blockStack = [];
+                  Structs.fCode = code;
+                  Structs.pc = Prims.int_zero;
+                  Structs.f_localplus = localplus;
+                  Structs.f_globals = global_names;
+                  Structs.f_locals = local_names;
+                  Structs.f_cells = cell_objects;
+                  Structs.f_idCount = (virM.Structs.idCount);
+                  Structs.f_usedIds = (virM.Structs.usedIds)
+                } in
+              (virM, frame)
 let (call_function :
   Prims.nat ->
     Structs.pyObj Prims.list ->
@@ -76,7 +79,10 @@ let (call_function :
                                       Structs.f_localplus = localplus;
                                       Structs.f_globals =
                                         (func.Structs.func_globals);
-                                      Structs.f_locals = Utils.emptyMap;
+                                      Structs.f_locals =
+                                        (func.Structs.func_cells);
+                                      Structs.f_cells =
+                                        (func.Structs.func_cells);
                                       Structs.f_idCount = id;
                                       Structs.f_usedIds = usedIds
                                     } in
@@ -841,90 +847,166 @@ let (store_fast :
         else
           (let newLocalPlus = FStar_List_Tot_Base.append localplus [tos] in
            (newLocalPlus, newDataStack))
+let (load_closure :
+  Prims.string FStar_Pervasives_Native.option ->
+    (Prims.string, Structs.pyObj) FStar_Map.t ->
+      (Prims.string, Structs.pyObj) FStar_Map.t ->
+        Structs.pyObj Prims.list -> Structs.pyObj Prims.list)
+  =
+  fun name ->
+    fun f_locals ->
+      fun f_globals ->
+        fun dataStack ->
+          match name with
+          | FStar_Pervasives_Native.None ->
+              (Utils.undefinedBehavior "load_closure") :: dataStack
+          | FStar_Pervasives_Native.Some name1 ->
+              if FStar_Map.contains f_locals name1
+              then (FStar_Map.sel f_locals name1) :: dataStack
+              else
+                if FStar_Map.contains f_globals name1
+                then (FStar_Map.sel f_globals name1) :: dataStack
+                else
+                  (Structs.PYTYP
+                     (PyException.createException
+                        (Prims.strcat "name: "
+                           (Prims.strcat name1 "is not defined"))))
+                  :: dataStack
+let (load_deref :
+  Prims.string FStar_Pervasives_Native.option ->
+    (Prims.string, Structs.pyObj) FStar_Map.t ->
+      (Prims.string, Structs.pyObj) FStar_Map.t ->
+        Structs.pyObj Prims.list -> Structs.pyObj Prims.list)
+  =
+  fun name ->
+    fun f_locals ->
+      fun f_globals ->
+        fun dataStack ->
+          match name with
+          | FStar_Pervasives_Native.None ->
+              (Utils.undefinedBehavior "load_deref") :: dataStack
+          | FStar_Pervasives_Native.Some name1 ->
+              if FStar_Map.contains f_locals name1
+              then (FStar_Map.sel f_locals name1) :: dataStack
+              else
+                if FStar_Map.contains f_globals name1
+                then (FStar_Map.sel f_globals name1) :: dataStack
+                else
+                  (Structs.PYTYP
+                     (PyException.createException
+                        (Prims.strcat "name: "
+                           (Prims.strcat name1 "is not defined"))))
+                  :: dataStack
+let (store_deref :
+  Prims.string FStar_Pervasives_Native.option ->
+    (Prims.string, Structs.pyObj) FStar_Map.t ->
+      (Prims.string, Structs.pyObj) FStar_Map.t ->
+        Structs.pyObj Prims.list ->
+          ((Prims.string, Structs.pyObj) FStar_Map.t * (Prims.string,
+            Structs.pyObj) FStar_Map.t * Structs.pyObj Prims.list))
+  =
+  fun name ->
+    fun f_locals ->
+      fun f_cells ->
+        fun dataStack ->
+          let tos = FStar_List_Tot_Base.hd dataStack in
+          match name with
+          | FStar_Pervasives_Native.None ->
+              (f_locals, f_cells, ((Utils.undefinedBehavior "store_deref") ::
+                dataStack))
+          | FStar_Pervasives_Native.Some name1 ->
+              let uu___ = FStar_List_Tot_Base.splitAt Prims.int_one dataStack in
+              (match uu___ with
+               | (uu___1, newDataStack) ->
+                   let newLocals = FStar_Map.upd f_locals name1 tos in
+                   let newCells = FStar_Map.upd f_cells name1 tos in
+                   (newLocals, newCells, newDataStack))
 let (make_function :
   Prims.nat ->
     (Prims.string, Structs.pyObj) FStar_Map.t ->
-      Structs.pyObj Prims.list -> Structs.pyObj Prims.list)
+      (Prims.string, Structs.pyObj) FStar_Map.t ->
+        Structs.pyObj Prims.list -> Structs.pyObj Prims.list)
   =
   fun flags ->
     fun globs ->
-      fun dataStack ->
-        let qualname = FStar_List_Tot_Base.hd dataStack in
-        let codeobj = FStar_List_Tot_Base.nth dataStack Prims.int_one in
-        match codeobj with
-        | FStar_Pervasives_Native.None ->
-            (Utils.undefinedBehavior "make_function_1") :: dataStack
-        | FStar_Pervasives_Native.Some (Structs.CODEOBJECT co) ->
-            let uu___ =
-              FStar_List_Tot_Base.splitAt (Prims.of_int (2)) dataStack in
-            (match uu___ with
-             | (uu___1, newDataStack) ->
-                 let func =
-                   PyFunction.createFunction
-                     {
-                       Structs.func_Code = (Structs.CODEOBJECT co);
-                       Structs.func_globals = globs;
-                       Structs.func_name = qualname;
-                       Structs.func_closure =
-                         (if flags = (Prims.of_int (8))
-                          then
-                            match FStar_List_Tot_Base.hd newDataStack with
-                            | Structs.PYTYP obj ->
-                                (match obj.Structs.value with
-                                 | Structs.TUPLE t ->
-                                     Structs.PYTYP (PyTuple.createTuple t)
-                                 | uu___2 ->
-                                     Utils.undefinedBehavior
-                                       "make_function_func_closure_2")
-                            | uu___2 ->
-                                Utils.undefinedBehavior
-                                  "make_function_func_closure_3"
-                          else Structs.PYTYP (PyNone.createNone ()));
-                       Structs.func_defaults =
-                         (if flags = Prims.int_one
-                          then
-                            match FStar_List_Tot_Base.hd newDataStack with
-                            | Structs.PYTYP obj ->
-                                (match obj.Structs.value with
-                                 | Structs.TUPLE t ->
-                                     Structs.PYTYP (PyTuple.createTuple t)
-                                 | uu___2 ->
-                                     Utils.undefinedBehavior
-                                       "make_function_func_defaults_2")
-                            | uu___2 ->
-                                Utils.undefinedBehavior
-                                  "make_function_func_defaults_3"
-                          else Structs.PYTYP (PyNone.createNone ()))
-                     } in
-                 (match flags with
-                  | uu___2 when uu___2 = Prims.int_zero ->
-                      (Structs.PYTYP func) :: newDataStack
-                  | uu___2 -> (Structs.PYTYP func) ::
-                      (FStar_List_Tot_Base.tail newDataStack)))
-        | uu___ -> (Utils.undefinedBehavior "make_function_3") :: dataStack
+      fun cells ->
+        fun dataStack ->
+          let qualname = FStar_List_Tot_Base.hd dataStack in
+          let codeobj = FStar_List_Tot_Base.nth dataStack Prims.int_one in
+          match codeobj with
+          | FStar_Pervasives_Native.None ->
+              (Utils.undefinedBehavior "make_function_1") :: dataStack
+          | FStar_Pervasives_Native.Some (Structs.CODEOBJECT co) ->
+              let uu___ =
+                FStar_List_Tot_Base.splitAt (Prims.of_int (2)) dataStack in
+              (match uu___ with
+               | (uu___1, newDataStack) ->
+                   let func =
+                     PyFunction.createFunction
+                       {
+                         Structs.func_Code = (Structs.CODEOBJECT co);
+                         Structs.func_globals = globs;
+                         Structs.func_cells = cells;
+                         Structs.func_name = qualname;
+                         Structs.func_closure =
+                           (if flags = (Prims.of_int (8))
+                            then
+                              match FStar_List_Tot_Base.hd newDataStack with
+                              | Structs.PYTYP obj ->
+                                  (match obj.Structs.value with
+                                   | Structs.TUPLE t ->
+                                       Structs.PYTYP (PyTuple.createTuple t)
+                                   | uu___2 ->
+                                       Utils.undefinedBehavior
+                                         "make_function_func_closure_2")
+                              | uu___2 ->
+                                  Utils.undefinedBehavior
+                                    "make_function_func_closure_3"
+                            else Structs.PYTYP (PyNone.createNone ()));
+                         Structs.func_defaults =
+                           (if flags = Prims.int_one
+                            then
+                              match FStar_List_Tot_Base.hd newDataStack with
+                              | Structs.PYTYP obj ->
+                                  (match obj.Structs.value with
+                                   | Structs.TUPLE t ->
+                                       Structs.PYTYP (PyTuple.createTuple t)
+                                   | uu___2 ->
+                                       Utils.undefinedBehavior
+                                         "make_function_func_defaults_2")
+                              | uu___2 ->
+                                  Utils.undefinedBehavior
+                                    "make_function_func_defaults_3"
+                            else Structs.PYTYP (PyNone.createNone ()))
+                       } in
+                   (match flags with
+                    | uu___2 when uu___2 = Prims.int_zero ->
+                        (Structs.PYTYP func) :: newDataStack
+                    | uu___2 -> (Structs.PYTYP func) ::
+                        (FStar_List_Tot_Base.tail newDataStack)))
+          | uu___ -> (Utils.undefinedBehavior "make_function_3") :: dataStack
 let (build_slice :
   Prims.nat -> Structs.pyObj Prims.list -> Structs.pyObj Prims.list) =
   fun i ->
     fun dataStack ->
       let tos = FStar_List_Tot_Base.hd dataStack in
       let tos1 = FStar_List_Tot_Base.nth dataStack Prims.int_one in
-      let tos2 = FStar_List_Tot_Base.nth dataStack (Prims.of_int (2)) in
       let uu___ = FStar_List_Tot_Base.splitAt i dataStack in
       match uu___ with
       | (uu___1, newDataStack) ->
           (match tos1 with
            | FStar_Pervasives_Native.Some tos11 ->
                (match (tos, tos11) with
-                | (Structs.PYTYP tos3, Structs.PYTYP tos12) ->
+                | (Structs.PYTYP tos2, Structs.PYTYP tos12) ->
                     if
-                      ((Utils.isNone tos3.Structs.value) ||
-                         (Utils.isInt tos3.Structs.value))
+                      ((Utils.isNone tos2.Structs.value) ||
+                         (Utils.isInt tos2.Structs.value))
                         &&
                         ((Utils.isNone tos12.Structs.value) ||
                            (Utils.isInt tos12.Structs.value))
                     then
-                      let tos4 =
-                        match tos3.Structs.value with
+                      let tos3 =
+                        match tos2.Structs.value with
                         | Structs.INT s -> FStar_Pervasives_Native.Some s
                         | Structs.NONE -> FStar_Pervasives_Native.None in
                       let tos13 =
@@ -936,7 +1018,7 @@ let (build_slice :
                          (Structs.PYTYP
                             (builtinsToPyObj
                                (Structs.SLICE
-                                  (tos13, tos4, FStar_Pervasives_Native.None))))
+                                  (tos13, tos3, FStar_Pervasives_Native.None))))
                          :: newDataStack
                        else
                          (match FStar_List_Tot_Base.nth dataStack
@@ -956,7 +1038,7 @@ let (build_slice :
                                       FStar_Pervasives_Native.None in
                                 (Structs.PYTYP
                                    (builtinsToPyObj
-                                      (Structs.SLICE (tos22, tos13, tos4))))
+                                      (Structs.SLICE (tos22, tos13, tos3))))
                                   :: newDataStack
                               else (Utils.undefinedBehavior "build_slice_2")
                                 :: dataStack
@@ -995,6 +1077,7 @@ let rec (execBytecode : Structs.frameObj -> Structs.frameObj) =
                       Structs.f_localplus = (frame.Structs.f_localplus);
                       Structs.f_globals = (frame.Structs.f_globals);
                       Structs.f_locals = (frame.Structs.f_locals);
+                      Structs.f_cells = (frame.Structs.f_cells);
                       Structs.f_idCount = (frame.Structs.f_idCount);
                       Structs.f_usedIds = (frame.Structs.f_usedIds)
                     }
@@ -1009,6 +1092,7 @@ let rec (execBytecode : Structs.frameObj -> Structs.frameObj) =
                        Structs.f_localplus = (frame.Structs.f_localplus);
                        Structs.f_globals = (frame.Structs.f_globals);
                        Structs.f_locals = (frame.Structs.f_locals);
+                       Structs.f_cells = (frame.Structs.f_cells);
                        Structs.f_idCount = (frame.Structs.f_idCount);
                        Structs.f_usedIds = (frame.Structs.f_usedIds)
                      })
@@ -1022,6 +1106,7 @@ let rec (execBytecode : Structs.frameObj -> Structs.frameObj) =
                       Structs.f_localplus = (frame.Structs.f_localplus);
                       Structs.f_globals = (frame.Structs.f_globals);
                       Structs.f_locals = (frame.Structs.f_locals);
+                      Structs.f_cells = (frame.Structs.f_cells);
                       Structs.f_idCount = (frame.Structs.f_idCount);
                       Structs.f_usedIds = (frame.Structs.f_usedIds)
                     }
@@ -1038,6 +1123,7 @@ let rec (execBytecode : Structs.frameObj -> Structs.frameObj) =
                            Structs.f_localplus = (frame.Structs.f_localplus);
                            Structs.f_globals = (frame.Structs.f_globals);
                            Structs.f_locals = (frame.Structs.f_locals);
+                           Structs.f_cells = (frame.Structs.f_cells);
                            Structs.f_idCount = (frame.Structs.f_idCount);
                            Structs.f_usedIds = (frame.Structs.f_usedIds)
                          }
@@ -1052,6 +1138,7 @@ let rec (execBytecode : Structs.frameObj -> Structs.frameObj) =
                            Structs.f_localplus = (frame.Structs.f_localplus);
                            Structs.f_globals = (frame.Structs.f_globals);
                            Structs.f_locals = (frame.Structs.f_locals);
+                           Structs.f_cells = (frame.Structs.f_cells);
                            Structs.f_idCount = (frame.Structs.f_idCount);
                            Structs.f_usedIds = (frame.Structs.f_usedIds)
                          })
@@ -1070,6 +1157,7 @@ let rec (execBytecode : Structs.frameObj -> Structs.frameObj) =
                         Structs.f_localplus = (frame.Structs.f_localplus);
                         Structs.f_globals = (frame.Structs.f_globals);
                         Structs.f_locals = (frame.Structs.f_locals);
+                        Structs.f_cells = (frame.Structs.f_cells);
                         Structs.f_idCount = (frame.Structs.f_idCount);
                         Structs.f_usedIds = (frame.Structs.f_usedIds)
                       }
@@ -1084,6 +1172,7 @@ let rec (execBytecode : Structs.frameObj -> Structs.frameObj) =
                          Structs.f_localplus = (frame.Structs.f_localplus);
                          Structs.f_globals = (frame.Structs.f_globals);
                          Structs.f_locals = (frame.Structs.f_locals);
+                         Structs.f_cells = (frame.Structs.f_cells);
                          Structs.f_idCount = (frame.Structs.f_idCount);
                          Structs.f_usedIds = (frame.Structs.f_usedIds)
                        })
@@ -1102,6 +1191,7 @@ let rec (execBytecode : Structs.frameObj -> Structs.frameObj) =
                         Structs.f_localplus = (frame.Structs.f_localplus);
                         Structs.f_globals = (frame.Structs.f_globals);
                         Structs.f_locals = (frame.Structs.f_locals);
+                        Structs.f_cells = (frame.Structs.f_cells);
                         Structs.f_idCount = (frame.Structs.f_idCount);
                         Structs.f_usedIds = (frame.Structs.f_usedIds)
                       }
@@ -1116,6 +1206,7 @@ let rec (execBytecode : Structs.frameObj -> Structs.frameObj) =
                          Structs.f_localplus = (frame.Structs.f_localplus);
                          Structs.f_globals = (frame.Structs.f_globals);
                          Structs.f_locals = (frame.Structs.f_locals);
+                         Structs.f_cells = (frame.Structs.f_cells);
                          Structs.f_idCount = (frame.Structs.f_idCount);
                          Structs.f_usedIds = (frame.Structs.f_usedIds)
                        })
@@ -1134,6 +1225,7 @@ let rec (execBytecode : Structs.frameObj -> Structs.frameObj) =
                         Structs.f_localplus = (frame.Structs.f_localplus);
                         Structs.f_globals = (frame.Structs.f_globals);
                         Structs.f_locals = (frame.Structs.f_locals);
+                        Structs.f_cells = (frame.Structs.f_cells);
                         Structs.f_idCount = (frame.Structs.f_idCount);
                         Structs.f_usedIds = (frame.Structs.f_usedIds)
                       }
@@ -1148,6 +1240,7 @@ let rec (execBytecode : Structs.frameObj -> Structs.frameObj) =
                          Structs.f_localplus = (frame.Structs.f_localplus);
                          Structs.f_globals = (frame.Structs.f_globals);
                          Structs.f_locals = (frame.Structs.f_locals);
+                         Structs.f_cells = (frame.Structs.f_cells);
                          Structs.f_idCount = (frame.Structs.f_idCount);
                          Structs.f_usedIds = (frame.Structs.f_usedIds)
                        })
@@ -1164,6 +1257,7 @@ let rec (execBytecode : Structs.frameObj -> Structs.frameObj) =
                            Structs.f_localplus = (frame.Structs.f_localplus);
                            Structs.f_globals = (frame.Structs.f_globals);
                            Structs.f_locals = (frame.Structs.f_locals);
+                           Structs.f_cells = (frame.Structs.f_cells);
                            Structs.f_idCount = (frame.Structs.f_idCount);
                            Structs.f_usedIds = (frame.Structs.f_usedIds)
                          }
@@ -1178,6 +1272,7 @@ let rec (execBytecode : Structs.frameObj -> Structs.frameObj) =
                            Structs.f_localplus = (frame.Structs.f_localplus);
                            Structs.f_globals = (frame.Structs.f_globals);
                            Structs.f_locals = (frame.Structs.f_locals);
+                           Structs.f_cells = (frame.Structs.f_cells);
                            Structs.f_idCount = (frame.Structs.f_idCount);
                            Structs.f_usedIds = (frame.Structs.f_usedIds)
                          })
@@ -1196,6 +1291,7 @@ let rec (execBytecode : Structs.frameObj -> Structs.frameObj) =
                         Structs.f_localplus = (frame.Structs.f_localplus);
                         Structs.f_globals = (frame.Structs.f_globals);
                         Structs.f_locals = (frame.Structs.f_locals);
+                        Structs.f_cells = (frame.Structs.f_cells);
                         Structs.f_idCount = (frame.Structs.f_idCount);
                         Structs.f_usedIds = (frame.Structs.f_usedIds)
                       }
@@ -1211,6 +1307,7 @@ let rec (execBytecode : Structs.frameObj -> Structs.frameObj) =
                          Structs.f_localplus = (frame.Structs.f_localplus);
                          Structs.f_globals = (frame.Structs.f_globals);
                          Structs.f_locals = (frame.Structs.f_locals);
+                         Structs.f_cells = (frame.Structs.f_cells);
                          Structs.f_idCount = (frame.Structs.f_idCount);
                          Structs.f_usedIds = (frame.Structs.f_usedIds)
                        })
@@ -1228,6 +1325,7 @@ let rec (execBytecode : Structs.frameObj -> Structs.frameObj) =
                            Structs.f_localplus = (frame.Structs.f_localplus);
                            Structs.f_globals = (frame.Structs.f_globals);
                            Structs.f_locals = (frame.Structs.f_locals);
+                           Structs.f_cells = (frame.Structs.f_cells);
                            Structs.f_idCount = (frame.Structs.f_idCount);
                            Structs.f_usedIds = (frame.Structs.f_usedIds)
                          }
@@ -1243,6 +1341,7 @@ let rec (execBytecode : Structs.frameObj -> Structs.frameObj) =
                            Structs.f_localplus = (frame.Structs.f_localplus);
                            Structs.f_globals = (frame.Structs.f_globals);
                            Structs.f_locals = (frame.Structs.f_locals);
+                           Structs.f_cells = (frame.Structs.f_cells);
                            Structs.f_idCount = (frame.Structs.f_idCount);
                            Structs.f_usedIds = (frame.Structs.f_usedIds)
                          })
@@ -1260,6 +1359,7 @@ let rec (execBytecode : Structs.frameObj -> Structs.frameObj) =
                            Structs.f_localplus = (frame.Structs.f_localplus);
                            Structs.f_globals = (frame.Structs.f_globals);
                            Structs.f_locals = (frame.Structs.f_locals);
+                           Structs.f_cells = (frame.Structs.f_cells);
                            Structs.f_idCount = (frame.Structs.f_idCount);
                            Structs.f_usedIds = (frame.Structs.f_usedIds)
                          }
@@ -1275,6 +1375,7 @@ let rec (execBytecode : Structs.frameObj -> Structs.frameObj) =
                            Structs.f_localplus = (frame.Structs.f_localplus);
                            Structs.f_globals = (frame.Structs.f_globals);
                            Structs.f_locals = (frame.Structs.f_locals);
+                           Structs.f_cells = (frame.Structs.f_cells);
                            Structs.f_idCount = (frame.Structs.f_idCount);
                            Structs.f_usedIds = (frame.Structs.f_usedIds)
                          })
@@ -1292,6 +1393,7 @@ let rec (execBytecode : Structs.frameObj -> Structs.frameObj) =
                            Structs.f_localplus = (frame.Structs.f_localplus);
                            Structs.f_globals = (frame.Structs.f_globals);
                            Structs.f_locals = (frame.Structs.f_locals);
+                           Structs.f_cells = (frame.Structs.f_cells);
                            Structs.f_idCount = (frame.Structs.f_idCount);
                            Structs.f_usedIds = (frame.Structs.f_usedIds)
                          }
@@ -1306,6 +1408,7 @@ let rec (execBytecode : Structs.frameObj -> Structs.frameObj) =
                            Structs.f_localplus = (frame.Structs.f_localplus);
                            Structs.f_globals = (frame.Structs.f_globals);
                            Structs.f_locals = (frame.Structs.f_locals);
+                           Structs.f_cells = (frame.Structs.f_cells);
                            Structs.f_idCount = (frame.Structs.f_idCount);
                            Structs.f_usedIds = (frame.Structs.f_usedIds)
                          })
@@ -1323,6 +1426,7 @@ let rec (execBytecode : Structs.frameObj -> Structs.frameObj) =
                            Structs.f_localplus = (frame.Structs.f_localplus);
                            Structs.f_globals = (frame.Structs.f_globals);
                            Structs.f_locals = (frame.Structs.f_locals);
+                           Structs.f_cells = (frame.Structs.f_cells);
                            Structs.f_idCount = (frame.Structs.f_idCount);
                            Structs.f_usedIds = (frame.Structs.f_usedIds)
                          }
@@ -1337,6 +1441,7 @@ let rec (execBytecode : Structs.frameObj -> Structs.frameObj) =
                            Structs.f_localplus = (frame.Structs.f_localplus);
                            Structs.f_globals = (frame.Structs.f_globals);
                            Structs.f_locals = (frame.Structs.f_locals);
+                           Structs.f_cells = (frame.Structs.f_cells);
                            Structs.f_idCount = (frame.Structs.f_idCount);
                            Structs.f_usedIds = (frame.Structs.f_usedIds)
                          })
@@ -1356,6 +1461,7 @@ let rec (execBytecode : Structs.frameObj -> Structs.frameObj) =
                         Structs.f_localplus = (frame.Structs.f_localplus);
                         Structs.f_globals = (frame.Structs.f_globals);
                         Structs.f_locals = (frame.Structs.f_locals);
+                        Structs.f_cells = (frame.Structs.f_cells);
                         Structs.f_idCount = (frame.Structs.f_idCount);
                         Structs.f_usedIds = (frame.Structs.f_usedIds)
                       }
@@ -1371,6 +1477,7 @@ let rec (execBytecode : Structs.frameObj -> Structs.frameObj) =
                          Structs.f_localplus = (frame.Structs.f_localplus);
                          Structs.f_globals = (frame.Structs.f_globals);
                          Structs.f_locals = (frame.Structs.f_locals);
+                         Structs.f_cells = (frame.Structs.f_cells);
                          Structs.f_idCount = (frame.Structs.f_idCount);
                          Structs.f_usedIds = (frame.Structs.f_usedIds)
                        })
@@ -1390,6 +1497,7 @@ let rec (execBytecode : Structs.frameObj -> Structs.frameObj) =
                         Structs.f_localplus = (frame.Structs.f_localplus);
                         Structs.f_globals = (frame.Structs.f_globals);
                         Structs.f_locals = (frame.Structs.f_locals);
+                        Structs.f_cells = (frame.Structs.f_cells);
                         Structs.f_idCount = (frame.Structs.f_idCount);
                         Structs.f_usedIds = (frame.Structs.f_usedIds)
                       }
@@ -1405,6 +1513,7 @@ let rec (execBytecode : Structs.frameObj -> Structs.frameObj) =
                          Structs.f_localplus = (frame.Structs.f_localplus);
                          Structs.f_globals = (frame.Structs.f_globals);
                          Structs.f_locals = (frame.Structs.f_locals);
+                         Structs.f_cells = (frame.Structs.f_cells);
                          Structs.f_idCount = (frame.Structs.f_idCount);
                          Structs.f_usedIds = (frame.Structs.f_usedIds)
                        })
@@ -1423,6 +1532,7 @@ let rec (execBytecode : Structs.frameObj -> Structs.frameObj) =
                         Structs.f_localplus = (frame.Structs.f_localplus);
                         Structs.f_globals = (frame.Structs.f_globals);
                         Structs.f_locals = (frame.Structs.f_locals);
+                        Structs.f_cells = (frame.Structs.f_cells);
                         Structs.f_idCount = (frame.Structs.f_idCount);
                         Structs.f_usedIds = (frame.Structs.f_usedIds)
                       }
@@ -1438,6 +1548,7 @@ let rec (execBytecode : Structs.frameObj -> Structs.frameObj) =
                          Structs.f_localplus = (frame.Structs.f_localplus);
                          Structs.f_globals = (frame.Structs.f_globals);
                          Structs.f_locals = (frame.Structs.f_locals);
+                         Structs.f_cells = (frame.Structs.f_cells);
                          Structs.f_idCount = (frame.Structs.f_idCount);
                          Structs.f_usedIds = (frame.Structs.f_usedIds)
                        })
@@ -1456,6 +1567,7 @@ let rec (execBytecode : Structs.frameObj -> Structs.frameObj) =
                         Structs.f_localplus = (frame.Structs.f_localplus);
                         Structs.f_globals = (frame.Structs.f_globals);
                         Structs.f_locals = (frame.Structs.f_locals);
+                        Structs.f_cells = (frame.Structs.f_cells);
                         Structs.f_idCount = (frame.Structs.f_idCount);
                         Structs.f_usedIds = (frame.Structs.f_usedIds)
                       }
@@ -1471,6 +1583,7 @@ let rec (execBytecode : Structs.frameObj -> Structs.frameObj) =
                          Structs.f_localplus = (frame.Structs.f_localplus);
                          Structs.f_globals = (frame.Structs.f_globals);
                          Structs.f_locals = (frame.Structs.f_locals);
+                         Structs.f_cells = (frame.Structs.f_cells);
                          Structs.f_idCount = (frame.Structs.f_idCount);
                          Structs.f_usedIds = (frame.Structs.f_usedIds)
                        })
@@ -1490,6 +1603,7 @@ let rec (execBytecode : Structs.frameObj -> Structs.frameObj) =
                         Structs.f_localplus = (frame.Structs.f_localplus);
                         Structs.f_globals = (frame.Structs.f_globals);
                         Structs.f_locals = (frame.Structs.f_locals);
+                        Structs.f_cells = (frame.Structs.f_cells);
                         Structs.f_idCount = (frame.Structs.f_idCount);
                         Structs.f_usedIds = (frame.Structs.f_usedIds)
                       }
@@ -1505,6 +1619,7 @@ let rec (execBytecode : Structs.frameObj -> Structs.frameObj) =
                          Structs.f_localplus = (frame.Structs.f_localplus);
                          Structs.f_globals = (frame.Structs.f_globals);
                          Structs.f_locals = (frame.Structs.f_locals);
+                         Structs.f_cells = (frame.Structs.f_cells);
                          Structs.f_idCount = (frame.Structs.f_idCount);
                          Structs.f_usedIds = (frame.Structs.f_usedIds)
                        })
@@ -1523,6 +1638,7 @@ let rec (execBytecode : Structs.frameObj -> Structs.frameObj) =
                         Structs.f_localplus = (frame.Structs.f_localplus);
                         Structs.f_globals = (frame.Structs.f_globals);
                         Structs.f_locals = (frame.Structs.f_locals);
+                        Structs.f_cells = (frame.Structs.f_cells);
                         Structs.f_idCount = (frame.Structs.f_idCount);
                         Structs.f_usedIds = (frame.Structs.f_usedIds)
                       }
@@ -1538,6 +1654,7 @@ let rec (execBytecode : Structs.frameObj -> Structs.frameObj) =
                          Structs.f_localplus = (frame.Structs.f_localplus);
                          Structs.f_globals = (frame.Structs.f_globals);
                          Structs.f_locals = (frame.Structs.f_locals);
+                         Structs.f_cells = (frame.Structs.f_cells);
                          Structs.f_idCount = (frame.Structs.f_idCount);
                          Structs.f_usedIds = (frame.Structs.f_usedIds)
                        })
@@ -1557,6 +1674,7 @@ let rec (execBytecode : Structs.frameObj -> Structs.frameObj) =
                         Structs.f_localplus = (frame.Structs.f_localplus);
                         Structs.f_globals = (frame.Structs.f_globals);
                         Structs.f_locals = (frame.Structs.f_locals);
+                        Structs.f_cells = (frame.Structs.f_cells);
                         Structs.f_idCount = (frame.Structs.f_idCount);
                         Structs.f_usedIds = (frame.Structs.f_usedIds)
                       }
@@ -1572,6 +1690,7 @@ let rec (execBytecode : Structs.frameObj -> Structs.frameObj) =
                          Structs.f_localplus = (frame.Structs.f_localplus);
                          Structs.f_globals = (frame.Structs.f_globals);
                          Structs.f_locals = (frame.Structs.f_locals);
+                         Structs.f_cells = (frame.Structs.f_cells);
                          Structs.f_idCount = (frame.Structs.f_idCount);
                          Structs.f_usedIds = (frame.Structs.f_usedIds)
                        })
@@ -1591,6 +1710,7 @@ let rec (execBytecode : Structs.frameObj -> Structs.frameObj) =
                         Structs.f_localplus = (frame.Structs.f_localplus);
                         Structs.f_globals = (frame.Structs.f_globals);
                         Structs.f_locals = (frame.Structs.f_locals);
+                        Structs.f_cells = (frame.Structs.f_cells);
                         Structs.f_idCount = (frame.Structs.f_idCount);
                         Structs.f_usedIds = (frame.Structs.f_usedIds)
                       }
@@ -1606,6 +1726,7 @@ let rec (execBytecode : Structs.frameObj -> Structs.frameObj) =
                          Structs.f_localplus = (frame.Structs.f_localplus);
                          Structs.f_globals = (frame.Structs.f_globals);
                          Structs.f_locals = (frame.Structs.f_locals);
+                         Structs.f_cells = (frame.Structs.f_cells);
                          Structs.f_idCount = (frame.Structs.f_idCount);
                          Structs.f_usedIds = (frame.Structs.f_usedIds)
                        })
@@ -1624,6 +1745,7 @@ let rec (execBytecode : Structs.frameObj -> Structs.frameObj) =
                         Structs.f_localplus = (frame.Structs.f_localplus);
                         Structs.f_globals = (frame.Structs.f_globals);
                         Structs.f_locals = (frame.Structs.f_locals);
+                        Structs.f_cells = (frame.Structs.f_cells);
                         Structs.f_idCount = (frame.Structs.f_idCount);
                         Structs.f_usedIds = (frame.Structs.f_usedIds)
                       }
@@ -1639,6 +1761,7 @@ let rec (execBytecode : Structs.frameObj -> Structs.frameObj) =
                          Structs.f_localplus = (frame.Structs.f_localplus);
                          Structs.f_globals = (frame.Structs.f_globals);
                          Structs.f_locals = (frame.Structs.f_locals);
+                         Structs.f_cells = (frame.Structs.f_cells);
                          Structs.f_idCount = (frame.Structs.f_idCount);
                          Structs.f_usedIds = (frame.Structs.f_usedIds)
                        })
@@ -1657,6 +1780,7 @@ let rec (execBytecode : Structs.frameObj -> Structs.frameObj) =
                         Structs.f_localplus = (frame.Structs.f_localplus);
                         Structs.f_globals = (frame.Structs.f_globals);
                         Structs.f_locals = (frame.Structs.f_locals);
+                        Structs.f_cells = (frame.Structs.f_cells);
                         Structs.f_idCount = (frame.Structs.f_idCount);
                         Structs.f_usedIds = (frame.Structs.f_usedIds)
                       }
@@ -1672,6 +1796,7 @@ let rec (execBytecode : Structs.frameObj -> Structs.frameObj) =
                          Structs.f_localplus = (frame.Structs.f_localplus);
                          Structs.f_globals = (frame.Structs.f_globals);
                          Structs.f_locals = (frame.Structs.f_locals);
+                         Structs.f_cells = (frame.Structs.f_cells);
                          Structs.f_idCount = (frame.Structs.f_idCount);
                          Structs.f_usedIds = (frame.Structs.f_usedIds)
                        })
@@ -1691,6 +1816,7 @@ let rec (execBytecode : Structs.frameObj -> Structs.frameObj) =
                         Structs.f_localplus = (frame.Structs.f_localplus);
                         Structs.f_globals = (frame.Structs.f_globals);
                         Structs.f_locals = (frame.Structs.f_locals);
+                        Structs.f_cells = (frame.Structs.f_cells);
                         Structs.f_idCount = (frame.Structs.f_idCount);
                         Structs.f_usedIds = (frame.Structs.f_usedIds)
                       }
@@ -1706,6 +1832,7 @@ let rec (execBytecode : Structs.frameObj -> Structs.frameObj) =
                          Structs.f_localplus = (frame.Structs.f_localplus);
                          Structs.f_globals = (frame.Structs.f_globals);
                          Structs.f_locals = (frame.Structs.f_locals);
+                         Structs.f_cells = (frame.Structs.f_cells);
                          Structs.f_idCount = (frame.Structs.f_idCount);
                          Structs.f_usedIds = (frame.Structs.f_usedIds)
                        })
@@ -1727,6 +1854,7 @@ let rec (execBytecode : Structs.frameObj -> Structs.frameObj) =
                         Structs.f_localplus = (frame.Structs.f_localplus);
                         Structs.f_globals = (frame.Structs.f_globals);
                         Structs.f_locals = (frame.Structs.f_locals);
+                        Structs.f_cells = (frame.Structs.f_cells);
                         Structs.f_idCount = (frame.Structs.f_idCount);
                         Structs.f_usedIds = (frame.Structs.f_usedIds)
                       }
@@ -1742,6 +1870,7 @@ let rec (execBytecode : Structs.frameObj -> Structs.frameObj) =
                          Structs.f_localplus = (frame.Structs.f_localplus);
                          Structs.f_globals = (frame.Structs.f_globals);
                          Structs.f_locals = (frame.Structs.f_locals);
+                         Structs.f_cells = (frame.Structs.f_cells);
                          Structs.f_idCount = (frame.Structs.f_idCount);
                          Structs.f_usedIds = (frame.Structs.f_usedIds)
                        })
@@ -1764,6 +1893,7 @@ let rec (execBytecode : Structs.frameObj -> Structs.frameObj) =
                         Structs.f_localplus = (frame.Structs.f_localplus);
                         Structs.f_globals = (frame.Structs.f_globals);
                         Structs.f_locals = (frame.Structs.f_locals);
+                        Structs.f_cells = (frame.Structs.f_cells);
                         Structs.f_idCount = (frame.Structs.f_idCount);
                         Structs.f_usedIds = (frame.Structs.f_usedIds)
                       }
@@ -1778,6 +1908,7 @@ let rec (execBytecode : Structs.frameObj -> Structs.frameObj) =
                          Structs.f_localplus = (frame.Structs.f_localplus);
                          Structs.f_globals = (frame.Structs.f_globals);
                          Structs.f_locals = (frame.Structs.f_locals);
+                         Structs.f_cells = (frame.Structs.f_cells);
                          Structs.f_idCount = (frame.Structs.f_idCount);
                          Structs.f_usedIds = (frame.Structs.f_usedIds)
                        })
@@ -1795,6 +1926,7 @@ let rec (execBytecode : Structs.frameObj -> Structs.frameObj) =
                         Structs.f_localplus = (frame.Structs.f_localplus);
                         Structs.f_globals = (frame.Structs.f_globals);
                         Structs.f_locals = (frame.Structs.f_locals);
+                        Structs.f_cells = (frame.Structs.f_cells);
                         Structs.f_idCount = (frame.Structs.f_idCount);
                         Structs.f_usedIds = (frame.Structs.f_usedIds)
                       }
@@ -1810,6 +1942,7 @@ let rec (execBytecode : Structs.frameObj -> Structs.frameObj) =
                          Structs.f_localplus = (frame.Structs.f_localplus);
                          Structs.f_globals = (frame.Structs.f_globals);
                          Structs.f_locals = (frame.Structs.f_locals);
+                         Structs.f_cells = (frame.Structs.f_cells);
                          Structs.f_idCount = (frame.Structs.f_idCount);
                          Structs.f_usedIds = (frame.Structs.f_usedIds)
                        })
@@ -1837,6 +1970,7 @@ let rec (execBytecode : Structs.frameObj -> Structs.frameObj) =
                                (frame.Structs.f_localplus);
                              Structs.f_globals = (frame.Structs.f_globals);
                              Structs.f_locals = newLocals;
+                             Structs.f_cells = (frame.Structs.f_cells);
                              Structs.f_idCount = (frame.Structs.f_idCount);
                              Structs.f_usedIds = (frame.Structs.f_usedIds)
                            })
@@ -1852,6 +1986,7 @@ let rec (execBytecode : Structs.frameObj -> Structs.frameObj) =
                          Structs.f_localplus = (frame.Structs.f_localplus);
                          Structs.f_globals = (frame.Structs.f_globals);
                          Structs.f_locals = (frame.Structs.f_locals);
+                         Structs.f_cells = (frame.Structs.f_cells);
                          Structs.f_idCount = (frame.Structs.f_idCount);
                          Structs.f_usedIds = (frame.Structs.f_usedIds)
                        })
@@ -1869,6 +2004,7 @@ let rec (execBytecode : Structs.frameObj -> Structs.frameObj) =
                         Structs.f_localplus = (frame.Structs.f_localplus);
                         Structs.f_globals = (frame.Structs.f_globals);
                         Structs.f_locals = (frame.Structs.f_locals);
+                        Structs.f_cells = (frame.Structs.f_cells);
                         Structs.f_idCount = (frame.Structs.f_idCount);
                         Structs.f_usedIds = (frame.Structs.f_usedIds)
                       }
@@ -1884,6 +2020,7 @@ let rec (execBytecode : Structs.frameObj -> Structs.frameObj) =
                          Structs.f_localplus = (frame.Structs.f_localplus);
                          Structs.f_globals = (frame.Structs.f_globals);
                          Structs.f_locals = (frame.Structs.f_locals);
+                         Structs.f_cells = (frame.Structs.f_cells);
                          Structs.f_idCount = (frame.Structs.f_idCount);
                          Structs.f_usedIds = (frame.Structs.f_usedIds)
                        })
@@ -1902,6 +2039,7 @@ let rec (execBytecode : Structs.frameObj -> Structs.frameObj) =
                         Structs.f_localplus = (frame.Structs.f_localplus);
                         Structs.f_globals = (frame.Structs.f_globals);
                         Structs.f_locals = (frame.Structs.f_locals);
+                        Structs.f_cells = (frame.Structs.f_cells);
                         Structs.f_idCount = (frame.Structs.f_idCount);
                         Structs.f_usedIds = (frame.Structs.f_usedIds)
                       }
@@ -1916,6 +2054,7 @@ let rec (execBytecode : Structs.frameObj -> Structs.frameObj) =
                          Structs.f_localplus = (frame.Structs.f_localplus);
                          Structs.f_globals = (frame.Structs.f_globals);
                          Structs.f_locals = (frame.Structs.f_locals);
+                         Structs.f_cells = (frame.Structs.f_cells);
                          Structs.f_idCount = (frame.Structs.f_idCount);
                          Structs.f_usedIds = (frame.Structs.f_usedIds)
                        })
@@ -1935,6 +2074,7 @@ let rec (execBytecode : Structs.frameObj -> Structs.frameObj) =
                         Structs.f_localplus = (frame.Structs.f_localplus);
                         Structs.f_globals = (frame.Structs.f_globals);
                         Structs.f_locals = (frame.Structs.f_locals);
+                        Structs.f_cells = (frame.Structs.f_cells);
                         Structs.f_idCount = (frame.Structs.f_idCount);
                         Structs.f_usedIds = (frame.Structs.f_usedIds)
                       }
@@ -1950,6 +2090,7 @@ let rec (execBytecode : Structs.frameObj -> Structs.frameObj) =
                          Structs.f_localplus = (frame.Structs.f_localplus);
                          Structs.f_globals = (frame.Structs.f_globals);
                          Structs.f_locals = (frame.Structs.f_locals);
+                         Structs.f_cells = (frame.Structs.f_cells);
                          Structs.f_idCount = (frame.Structs.f_idCount);
                          Structs.f_usedIds = (frame.Structs.f_usedIds)
                        })
@@ -1965,6 +2106,7 @@ let rec (execBytecode : Structs.frameObj -> Structs.frameObj) =
                       Structs.f_localplus = (frame.Structs.f_localplus);
                       Structs.f_globals = (frame.Structs.f_globals);
                       Structs.f_locals = (frame.Structs.f_locals);
+                      Structs.f_cells = (frame.Structs.f_cells);
                       Structs.f_idCount = (frame.Structs.f_idCount);
                       Structs.f_usedIds = (frame.Structs.f_usedIds)
                     }
@@ -1982,6 +2124,7 @@ let rec (execBytecode : Structs.frameObj -> Structs.frameObj) =
                            Structs.f_localplus = (frame.Structs.f_localplus);
                            Structs.f_globals = (frame.Structs.f_globals);
                            Structs.f_locals = (frame.Structs.f_locals);
+                           Structs.f_cells = (frame.Structs.f_cells);
                            Structs.f_idCount = (frame.Structs.f_idCount);
                            Structs.f_usedIds = (frame.Structs.f_usedIds)
                          }
@@ -2006,6 +2149,7 @@ let rec (execBytecode : Structs.frameObj -> Structs.frameObj) =
                                   (frame.Structs.f_localplus);
                                 Structs.f_globals = (frame.Structs.f_globals);
                                 Structs.f_locals = (frame.Structs.f_locals);
+                                Structs.f_cells = (frame.Structs.f_cells);
                                 Structs.f_idCount = (frame.Structs.f_idCount);
                                 Structs.f_usedIds = (frame.Structs.f_usedIds)
                               }))
@@ -2023,6 +2167,7 @@ let rec (execBytecode : Structs.frameObj -> Structs.frameObj) =
                            Structs.f_localplus = (frame.Structs.f_localplus);
                            Structs.f_globals = (frame.Structs.f_globals);
                            Structs.f_locals = (frame.Structs.f_locals);
+                           Structs.f_cells = (frame.Structs.f_cells);
                            Structs.f_idCount = (frame.Structs.f_idCount);
                            Structs.f_usedIds = (frame.Structs.f_usedIds)
                          }
@@ -2047,6 +2192,7 @@ let rec (execBytecode : Structs.frameObj -> Structs.frameObj) =
                                   (frame.Structs.f_localplus);
                                 Structs.f_globals = (frame.Structs.f_globals);
                                 Structs.f_locals = (frame.Structs.f_locals);
+                                Structs.f_cells = (frame.Structs.f_cells);
                                 Structs.f_idCount = (frame.Structs.f_idCount);
                                 Structs.f_usedIds = (frame.Structs.f_usedIds)
                               }))
@@ -2064,6 +2210,7 @@ let rec (execBytecode : Structs.frameObj -> Structs.frameObj) =
                            Structs.f_localplus = (frame.Structs.f_localplus);
                            Structs.f_globals = (frame.Structs.f_globals);
                            Structs.f_locals = (frame.Structs.f_locals);
+                           Structs.f_cells = (frame.Structs.f_cells);
                            Structs.f_idCount = (frame.Structs.f_idCount);
                            Structs.f_usedIds = (frame.Structs.f_usedIds)
                          }
@@ -2088,6 +2235,7 @@ let rec (execBytecode : Structs.frameObj -> Structs.frameObj) =
                                   (frame.Structs.f_localplus);
                                 Structs.f_globals = (frame.Structs.f_globals);
                                 Structs.f_locals = (frame.Structs.f_locals);
+                                Structs.f_cells = (frame.Structs.f_cells);
                                 Structs.f_idCount = (frame.Structs.f_idCount);
                                 Structs.f_usedIds = (frame.Structs.f_usedIds)
                               }))
@@ -2105,6 +2253,7 @@ let rec (execBytecode : Structs.frameObj -> Structs.frameObj) =
                            Structs.f_localplus = (frame.Structs.f_localplus);
                            Structs.f_globals = (frame.Structs.f_globals);
                            Structs.f_locals = (frame.Structs.f_locals);
+                           Structs.f_cells = (frame.Structs.f_cells);
                            Structs.f_idCount = (frame.Structs.f_idCount);
                            Structs.f_usedIds = (frame.Structs.f_usedIds)
                          }
@@ -2129,6 +2278,7 @@ let rec (execBytecode : Structs.frameObj -> Structs.frameObj) =
                                   (frame.Structs.f_localplus);
                                 Structs.f_globals = (frame.Structs.f_globals);
                                 Structs.f_locals = (frame.Structs.f_locals);
+                                Structs.f_cells = (frame.Structs.f_cells);
                                 Structs.f_idCount = (frame.Structs.f_idCount);
                                 Structs.f_usedIds = (frame.Structs.f_usedIds)
                               }))
@@ -2146,6 +2296,7 @@ let rec (execBytecode : Structs.frameObj -> Structs.frameObj) =
                            Structs.f_localplus = (frame.Structs.f_localplus);
                            Structs.f_globals = (frame.Structs.f_globals);
                            Structs.f_locals = (frame.Structs.f_locals);
+                           Structs.f_cells = (frame.Structs.f_cells);
                            Structs.f_idCount = (frame.Structs.f_idCount);
                            Structs.f_usedIds = (frame.Structs.f_usedIds)
                          }
@@ -2169,6 +2320,7 @@ let rec (execBytecode : Structs.frameObj -> Structs.frameObj) =
                                   (frame.Structs.f_localplus);
                                 Structs.f_globals = (frame.Structs.f_globals);
                                 Structs.f_locals = (frame.Structs.f_locals);
+                                Structs.f_cells = (frame.Structs.f_cells);
                                 Structs.f_idCount = (frame.Structs.f_idCount);
                                 Structs.f_usedIds = (frame.Structs.f_usedIds)
                               }))
@@ -2182,6 +2334,7 @@ let rec (execBytecode : Structs.frameObj -> Structs.frameObj) =
                       Structs.f_localplus = (frame.Structs.f_localplus);
                       Structs.f_globals = (frame.Structs.f_globals);
                       Structs.f_locals = (frame.Structs.f_locals);
+                      Structs.f_cells = (frame.Structs.f_cells);
                       Structs.f_idCount = (frame.Structs.f_idCount);
                       Structs.f_usedIds = (frame.Structs.f_usedIds)
                     }
@@ -2203,6 +2356,7 @@ let rec (execBytecode : Structs.frameObj -> Structs.frameObj) =
                         Structs.f_localplus = (frame.Structs.f_localplus);
                         Structs.f_globals = (frame.Structs.f_globals);
                         Structs.f_locals = (frame.Structs.f_locals);
+                        Structs.f_cells = (frame.Structs.f_cells);
                         Structs.f_idCount = (frame.Structs.f_idCount);
                         Structs.f_usedIds = (frame.Structs.f_usedIds)
                       }
@@ -2218,6 +2372,7 @@ let rec (execBytecode : Structs.frameObj -> Structs.frameObj) =
                          Structs.f_localplus = (frame.Structs.f_localplus);
                          Structs.f_globals = (frame.Structs.f_globals);
                          Structs.f_locals = (frame.Structs.f_locals);
+                         Structs.f_cells = (frame.Structs.f_cells);
                          Structs.f_idCount = (frame.Structs.f_idCount);
                          Structs.f_usedIds = (frame.Structs.f_usedIds)
                        })
@@ -2238,6 +2393,7 @@ let rec (execBytecode : Structs.frameObj -> Structs.frameObj) =
                         Structs.f_localplus = (frame.Structs.f_localplus);
                         Structs.f_globals = (frame.Structs.f_globals);
                         Structs.f_locals = (frame.Structs.f_locals);
+                        Structs.f_cells = (frame.Structs.f_cells);
                         Structs.f_idCount = (frame.Structs.f_idCount);
                         Structs.f_usedIds = (frame.Structs.f_usedIds)
                       }
@@ -2252,6 +2408,7 @@ let rec (execBytecode : Structs.frameObj -> Structs.frameObj) =
                          Structs.f_localplus = (frame.Structs.f_localplus);
                          Structs.f_globals = (frame.Structs.f_globals);
                          Structs.f_locals = (frame.Structs.f_locals);
+                         Structs.f_cells = (frame.Structs.f_cells);
                          Structs.f_idCount = (frame.Structs.f_idCount);
                          Structs.f_usedIds = (frame.Structs.f_usedIds)
                        })
@@ -2277,6 +2434,7 @@ let rec (execBytecode : Structs.frameObj -> Structs.frameObj) =
                              Structs.f_localplus = newLocalPlus;
                              Structs.f_globals = (frame.Structs.f_globals);
                              Structs.f_locals = (frame.Structs.f_locals);
+                             Structs.f_cells = (frame.Structs.f_cells);
                              Structs.f_idCount = (frame.Structs.f_idCount);
                              Structs.f_usedIds = (frame.Structs.f_usedIds)
                            })
@@ -2292,6 +2450,117 @@ let rec (execBytecode : Structs.frameObj -> Structs.frameObj) =
                          Structs.f_localplus = (frame.Structs.f_localplus);
                          Structs.f_globals = (frame.Structs.f_globals);
                          Structs.f_locals = (frame.Structs.f_locals);
+                         Structs.f_cells = (frame.Structs.f_cells);
+                         Structs.f_idCount = (frame.Structs.f_idCount);
+                         Structs.f_usedIds = (frame.Structs.f_usedIds)
+                       })
+              | Structs.LOAD_CLOSURE i ->
+                  let len_co_cellvars =
+                    FStar_List_Tot_Base.length
+                      (frame.Structs.fCode).Structs.co_cellvars in
+                  let name =
+                    if i < len_co_cellvars
+                    then
+                      FStar_List_Tot_Base.nth
+                        (frame.Structs.fCode).Structs.co_cellvars i
+                    else
+                      FStar_List_Tot_Base.nth
+                        (frame.Structs.fCode).Structs.co_freevars
+                        (i - len_co_cellvars) in
+                  let newDataStack =
+                    load_closure name frame.Structs.f_locals
+                      frame.Structs.f_globals frame.Structs.dataStack in
+                  execBytecode
+                    {
+                      Structs.dataStack = newDataStack;
+                      Structs.blockStack = (frame.Structs.blockStack);
+                      Structs.fCode = (frame.Structs.fCode);
+                      Structs.pc = (frame.Structs.pc + Prims.int_one);
+                      Structs.f_localplus = (frame.Structs.f_localplus);
+                      Structs.f_globals = (frame.Structs.f_globals);
+                      Structs.f_locals = (frame.Structs.f_locals);
+                      Structs.f_cells = (frame.Structs.f_cells);
+                      Structs.f_idCount = (frame.Structs.f_idCount);
+                      Structs.f_usedIds = (frame.Structs.f_usedIds)
+                    }
+              | Structs.LOAD_DEREF i ->
+                  let len_co_cellvars =
+                    FStar_List_Tot_Base.length
+                      (frame.Structs.fCode).Structs.co_cellvars in
+                  let name =
+                    if i < len_co_cellvars
+                    then
+                      FStar_List_Tot_Base.nth
+                        (frame.Structs.fCode).Structs.co_cellvars i
+                    else
+                      FStar_List_Tot_Base.nth
+                        (frame.Structs.fCode).Structs.co_freevars
+                        (i - len_co_cellvars) in
+                  let newDataStack =
+                    load_deref name frame.Structs.f_locals
+                      frame.Structs.f_globals frame.Structs.dataStack in
+                  execBytecode
+                    {
+                      Structs.dataStack = newDataStack;
+                      Structs.blockStack = (frame.Structs.blockStack);
+                      Structs.fCode = (frame.Structs.fCode);
+                      Structs.pc = (frame.Structs.pc + Prims.int_one);
+                      Structs.f_localplus = (frame.Structs.f_localplus);
+                      Structs.f_globals = (frame.Structs.f_globals);
+                      Structs.f_locals = (frame.Structs.f_locals);
+                      Structs.f_cells = (frame.Structs.f_cells);
+                      Structs.f_idCount = (frame.Structs.f_idCount);
+                      Structs.f_usedIds = (frame.Structs.f_usedIds)
+                    }
+              | Structs.STORE_DEREF i ->
+                  let len_co_cellvars =
+                    FStar_List_Tot_Base.length
+                      (frame.Structs.fCode).Structs.co_cellvars in
+                  let name =
+                    if i < len_co_cellvars
+                    then
+                      FStar_List_Tot_Base.nth
+                        (frame.Structs.fCode).Structs.co_cellvars i
+                    else
+                      FStar_List_Tot_Base.nth
+                        (frame.Structs.fCode).Structs.co_freevars
+                        (i - len_co_cellvars) in
+                  if
+                    (FStar_List_Tot_Base.length frame.Structs.dataStack) >=
+                      Prims.int_one
+                  then
+                    let uu___3 =
+                      store_deref name frame.Structs.f_locals
+                        frame.Structs.f_cells frame.Structs.dataStack in
+                    (match uu___3 with
+                     | (newLocals, newCells, newDataStack) ->
+                         execBytecode
+                           {
+                             Structs.dataStack = newDataStack;
+                             Structs.blockStack = (frame.Structs.blockStack);
+                             Structs.fCode = (frame.Structs.fCode);
+                             Structs.pc = (frame.Structs.pc + Prims.int_one);
+                             Structs.f_localplus =
+                               (frame.Structs.f_localplus);
+                             Structs.f_globals = (frame.Structs.f_globals);
+                             Structs.f_locals = newLocals;
+                             Structs.f_cells = newCells;
+                             Structs.f_idCount = (frame.Structs.f_idCount);
+                             Structs.f_usedIds = (frame.Structs.f_usedIds)
+                           })
+                  else
+                    (let newDataStack =
+                       [Utils.undefinedBehavior "STORE_DEREF"] in
+                     execBytecode
+                       {
+                         Structs.dataStack = newDataStack;
+                         Structs.blockStack = (frame.Structs.blockStack);
+                         Structs.fCode = (frame.Structs.fCode);
+                         Structs.pc = (frame.Structs.pc + Prims.int_one);
+                         Structs.f_localplus = (frame.Structs.f_localplus);
+                         Structs.f_globals = (frame.Structs.f_globals);
+                         Structs.f_locals = (frame.Structs.f_locals);
+                         Structs.f_cells = (frame.Structs.f_cells);
                          Structs.f_idCount = (frame.Structs.f_idCount);
                          Structs.f_usedIds = (frame.Structs.f_usedIds)
                        })
@@ -2308,7 +2577,7 @@ let rec (execBytecode : Structs.frameObj -> Structs.frameObj) =
                         then
                           let newDataStack =
                             make_function flags frame.Structs.f_globals
-                              frame.Structs.dataStack in
+                              frame.Structs.f_cells frame.Structs.dataStack in
                           execBytecode
                             {
                               Structs.dataStack = newDataStack;
@@ -2319,6 +2588,7 @@ let rec (execBytecode : Structs.frameObj -> Structs.frameObj) =
                                 (frame.Structs.f_localplus);
                               Structs.f_globals = (frame.Structs.f_globals);
                               Structs.f_locals = (frame.Structs.f_locals);
+                              Structs.f_cells = (frame.Structs.f_cells);
                               Structs.f_idCount = (frame.Structs.f_idCount);
                               Structs.f_usedIds = (frame.Structs.f_usedIds)
                             }
@@ -2337,13 +2607,14 @@ let rec (execBytecode : Structs.frameObj -> Structs.frameObj) =
                                  (frame.Structs.f_localplus);
                                Structs.f_globals = (frame.Structs.f_globals);
                                Structs.f_locals = (frame.Structs.f_locals);
+                               Structs.f_cells = (frame.Structs.f_cells);
                                Structs.f_idCount = (frame.Structs.f_idCount);
                                Structs.f_usedIds = (frame.Structs.f_usedIds)
                              }))
                      else
                        (let newDataStack =
                           make_function flags frame.Structs.f_globals
-                            frame.Structs.dataStack in
+                            frame.Structs.f_cells frame.Structs.dataStack in
                         execBytecode
                           {
                             Structs.dataStack = newDataStack;
@@ -2353,6 +2624,7 @@ let rec (execBytecode : Structs.frameObj -> Structs.frameObj) =
                             Structs.f_localplus = (frame.Structs.f_localplus);
                             Structs.f_globals = (frame.Structs.f_globals);
                             Structs.f_locals = (frame.Structs.f_locals);
+                            Structs.f_cells = (frame.Structs.f_cells);
                             Structs.f_idCount = (frame.Structs.f_idCount);
                             Structs.f_usedIds = (frame.Structs.f_usedIds)
                           }))
@@ -2368,6 +2640,7 @@ let rec (execBytecode : Structs.frameObj -> Structs.frameObj) =
                          Structs.f_localplus = (frame.Structs.f_localplus);
                          Structs.f_globals = (frame.Structs.f_globals);
                          Structs.f_locals = (frame.Structs.f_locals);
+                         Structs.f_cells = (frame.Structs.f_cells);
                          Structs.f_idCount = (frame.Structs.f_idCount);
                          Structs.f_usedIds = (frame.Structs.f_usedIds)
                        })
@@ -2388,6 +2661,7 @@ let rec (execBytecode : Structs.frameObj -> Structs.frameObj) =
                         Structs.f_localplus = (frame.Structs.f_localplus);
                         Structs.f_globals = (frame.Structs.f_globals);
                         Structs.f_locals = (frame.Structs.f_locals);
+                        Structs.f_cells = (frame.Structs.f_cells);
                         Structs.f_idCount = (frame.Structs.f_idCount);
                         Structs.f_usedIds = (frame.Structs.f_usedIds)
                       }
@@ -2403,6 +2677,7 @@ let rec (execBytecode : Structs.frameObj -> Structs.frameObj) =
                          Structs.f_localplus = (frame.Structs.f_localplus);
                          Structs.f_globals = (frame.Structs.f_globals);
                          Structs.f_locals = (frame.Structs.f_locals);
+                         Structs.f_cells = (frame.Structs.f_cells);
                          Structs.f_idCount = (frame.Structs.f_idCount);
                          Structs.f_usedIds = (frame.Structs.f_usedIds)
                        })
@@ -2418,6 +2693,7 @@ let rec (execBytecode : Structs.frameObj -> Structs.frameObj) =
                       Structs.f_localplus = (frame.Structs.f_localplus);
                       Structs.f_globals = (frame.Structs.f_globals);
                       Structs.f_locals = (frame.Structs.f_locals);
+                      Structs.f_cells = (frame.Structs.f_cells);
                       Structs.f_idCount = (frame.Structs.f_idCount);
                       Structs.f_usedIds = (frame.Structs.f_usedIds)
                     }))
@@ -2439,6 +2715,7 @@ let rec (runFrame :
               Structs.f_localplus = (resultFrame.Structs.f_localplus);
               Structs.f_globals = (resultFrame.Structs.f_globals);
               Structs.f_locals = (resultFrame.Structs.f_locals);
+              Structs.f_cells = (resultFrame.Structs.f_cells);
               Structs.f_idCount = (resultFrame.Structs.f_idCount);
               Structs.f_usedIds = (resultFrame.Structs.f_usedIds)
             } in
@@ -2470,6 +2747,7 @@ let rec (runFrame :
                  Structs.f_localplus = (callerFrame.Structs.f_localplus);
                  Structs.f_globals = new_globals;
                  Structs.f_locals = (callerFrame.Structs.f_locals);
+                 Structs.f_cells = (callerFrame.Structs.f_cells);
                  Structs.f_idCount = (callerFrame.Structs.f_idCount);
                  Structs.f_usedIds = (callerFrame.Structs.f_usedIds)
                } in

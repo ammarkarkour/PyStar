@@ -9,8 +9,11 @@ open FStar.List.Tot.Base
 
 val builtinsToPyObj: builtins -> Tot cls
 
-val makeFrame: vm -> codeObj -> list pyObj -> (Map.t string pyObj) 
-                  -> (Map.t string pyObj) -> Tot (vm * frameObj)
+val makeFrame: vm -> codeObj -> list pyObj 
+                  -> (Map.t string pyObj) 
+                  -> (Map.t string pyObj)
+                  -> (Map.t string pyObj)
+                  -> Tot (vm * frameObj)
 
 val call_function:  (i:nat)
                  -> (l:list pyObj {length l > i}) 
@@ -107,10 +110,27 @@ val store_fast: (i:nat) -> (l1:list pyObj {length l1 >= i})
                        -> (l2:list pyObj {Cons? l2}) 
                        -> Tot (list pyObj * list pyObj)
 
-val make_function: (i:nat) -> (Map.t string pyObj) -> (l:list pyObj {if i = 0
-                                                                 then length l >= 2
-                                                                 else length l >= 3})
-                      -> Tot (list pyObj)
+val load_closure: (n: option string) -> Map.t string pyObj
+                                     -> Map.t string pyObj 
+                                     -> list pyObj -> Tot (list pyObj)
+
+val load_deref: (n: option string) -> Map.t string pyObj 
+                                   -> Map.t string pyObj 
+                                   -> list pyObj -> Tot (list pyObj)
+
+val store_deref: (n: option string) -> Map.t string pyObj
+                                    -> Map.t string pyObj
+                                    -> (l2:list pyObj {Cons? l2}) 
+                                    -> Tot (Map.t string pyObj *
+                                           Map.t string pyObj *
+                                           list pyObj) 
+                              
+val make_function: (i:nat) -> (Map.t string pyObj) 
+                         -> (Map.t string pyObj)
+                         -> (l:list pyObj {if i = 0
+                                          then length l >= 2
+                                          else length l >= 3})
+                         -> Tot (list pyObj)
 
 val build_slice: (i:nat {i = 2 || i =3}) -> (l:list pyObj {length l >= i}) -> Tot (list pyObj)
 

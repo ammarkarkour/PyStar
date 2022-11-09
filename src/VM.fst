@@ -18,7 +18,8 @@ let runCode code =
     usedIds = idsMap
   } in
   (* Create global frame to run the byte code instructions in it *)
-  let  virM, globalFrame = makeFrame initVM code [] emptyMap emptyMap in
+  let  virM, globalFrame = 
+    makeFrame initVM code [] emptyMap emptyMap emptyMap in
   let  finalVM, result = runFrame virM globalFrame in
   result
 
@@ -32,6 +33,7 @@ let runCode_returnVM code =
     usedIds = idsMap
   } in
   (* Create global frame to run the byte code instructions in it *)
-  let  virM, globalFrame = makeFrame initVM code [] emptyMap emptyMap in
+  let  virM, globalFrame =
+    makeFrame initVM code [] emptyMap emptyMap emptyMap in
   let  finalVM, result = runFrame virM globalFrame in
   finalVM, result

@@ -16,7 +16,7 @@ def top_level():
     def test_function_to_be_called():
         return 1
     
-    def test_caller_function():
+    def test_closure():
         return test_function_to_be_called()
     
     
@@ -24,7 +24,7 @@ def top_level():
         test_function_def_with_no_params(),
         test_function_def_with_params(1,2,3),
         test_recursive(5),
-        test_caller_function()
+        test_closure()
     ]
     
     return result

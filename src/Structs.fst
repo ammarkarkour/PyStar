@@ -43,6 +43,9 @@ type opcode =
   | LOAD_GLOBAL: nat -> opcode
   | LOAD_FAST: nat -> opcode
   | STORE_FAST: nat -> opcode
+  | LOAD_CLOSURE: nat -> opcode
+  | LOAD_DEREF: nat -> opcode
+  | STORE_DEREF: nat -> opcode
   | RETURN_VALUE: opcode
   | CALL_FUNCTION: nat -> opcode
   | MAKE_FUNCTION: nat -> opcode
@@ -108,7 +111,9 @@ and codeObj = {
   co_code: bytecode;
   co_consts: list pyObj; // elem at index 0 must be None
   co_varnames: list string;
-  co_names: list string; 
+  co_names: list string;
+  co_cellvars: list string;
+  co_freevars: list string;
 }
   
 (* Frame object *)
@@ -120,6 +125,7 @@ and frameObj = {
   f_localplus: list pyObj;
   f_globals: Map.t string pyObj;
   f_locals: Map.t string pyObj;
+  f_cells: Map.t string pyObj;
   f_idCount: nat;
   f_usedIds: Map.t hashable nat
   (* built-in names *)
@@ -130,6 +136,7 @@ and frameObj = {
 and functionObj = {
   func_Code: pyObj; (* CODEOBJECT *)
   func_globals: Map.t string pyObj; (* DICT *)
+  func_cells: Map.t string pyObj;
   func_name: pyObj; (* STRING *)
   func_closure: pyObj; (* TUPLE *)
   func_defaults: pyObj; (* TUPLE *)

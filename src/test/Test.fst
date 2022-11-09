@@ -7,157 +7,270 @@ open Utils
 open PyBuiltinObjects
 (* ---------------- *)
 
-let bc_0x7fec7faa6a80 = CODE [
+let bc_0x7f1fd820d2f0 = CODE [
   LOAD_CONST 1;
   LOAD_CONST 2;
   MAKE_FUNCTION 0;
   STORE_FAST 0;
-  LOAD_FAST 0;
-  CALL_FUNCTION 0;
-  BUILD_LIST 1;
-  STORE_FAST 1;
-  LOAD_FAST 1;
-  RETURN_VALUE ;
-]
-
-let bc_0x7fec7faa69d0 = CODE [
-  LOAD_CONST 1;
-  LOAD_CONST 2;
   LOAD_CONST 3;
   LOAD_CONST 4;
+  MAKE_FUNCTION 0;
+  STORE_FAST 1;
+  LOAD_CLOSURE 1;
+  BUILD_TUPLE 1;
   LOAD_CONST 5;
   LOAD_CONST 6;
+  MAKE_FUNCTION 8;
+  STORE_DEREF 1;
   LOAD_CONST 7;
   LOAD_CONST 8;
+  MAKE_FUNCTION 0;
+  STORE_DEREF 0;
+  LOAD_CLOSURE 0;
+  BUILD_TUPLE 1;
   LOAD_CONST 9;
-  BUILD_LIST 9;
-  STORE_FAST 0;
-  LOAD_FAST 0;
-  LOAD_CONST 0;
-  LOAD_CONST 0;
-  BUILD_SLICE 2;
-  BINARY_SUBSCR ;
-  STORE_FAST 1;
-  LOAD_FAST 0;
-  LOAD_CONST 0;
-  LOAD_CONST 0;
   LOAD_CONST 10;
-  BUILD_SLICE 3;
-  BINARY_SUBSCR ;
+  MAKE_FUNCTION 8;
   STORE_FAST 2;
   LOAD_FAST 0;
-  LOAD_CONST 0;
-  LOAD_CONST 0;
-  LOAD_CONST 2;
-  BUILD_SLICE 3;
-  BINARY_SUBSCR ;
-  STORE_FAST 3;
-  LOAD_FAST 0;
-  LOAD_CONST 0;
-  LOAD_CONST 0;
+  CALL_FUNCTION 0;
+  LOAD_FAST 1;
   LOAD_CONST 11;
-  BUILD_SLICE 3;
-  BINARY_SUBSCR ;
-  STORE_FAST 4;
-  LOAD_FAST 0;
   LOAD_CONST 12;
   LOAD_CONST 13;
-  BUILD_SLICE 2;
-  BINARY_SUBSCR ;
-  STORE_FAST 5;
-  LOAD_FAST 0;
+  CALL_FUNCTION 3;
+  LOAD_DEREF 1;
   LOAD_CONST 14;
-  LOAD_CONST 0;
-  LOAD_CONST 10;
-  BUILD_SLICE 3;
-  BINARY_SUBSCR ;
-  STORE_FAST 6;
-  LOAD_FAST 0;
-  LOAD_CONST 5;
-  LOAD_CONST 1;
-  BUILD_SLICE 2;
-  BINARY_SUBSCR ;
-  STORE_FAST 7;
-  LOAD_FAST 0;
-  LOAD_CONST 1;
-  LOAD_CONST 5;
-  LOAD_CONST 10;
-  BUILD_SLICE 3;
-  BINARY_SUBSCR ;
-  STORE_FAST 8;
-  LOAD_FAST 1;
+  CALL_FUNCTION 1;
   LOAD_FAST 2;
+  CALL_FUNCTION 0;
+  BUILD_LIST 4;
+  STORE_FAST 3;
   LOAD_FAST 3;
-  LOAD_FAST 4;
-  LOAD_FAST 5;
-  LOAD_FAST 6;
-  LOAD_FAST 7;
-  LOAD_FAST 8;
-  BUILD_TUPLE 8;
   RETURN_VALUE ;
 ]
 
-let consts_0x7fec7faa69d0 = [
+let bc_0x7f1fd820d240 = CODE [
+  LOAD_DEREF 0;
+  CALL_FUNCTION 0;
+  RETURN_VALUE ;
+]
+
+let consts_0x7f1fd820d240 = [
   PYTYP(createNone());
+]
+
+let varnames_0x7f1fd820d240 = [
+]
+
+let names_0x7f1fd820d240 = [
+]
+
+let cellvars_0x7f1fd820d240 = [
+]
+
+let freevars_0x7f1fd820d240 = [
+  "test_function_to_be_called";
+]
+
+let co_0x7f1fd820d240 = {
+  co_code = bc_0x7f1fd820d240;
+  co_consts = consts_0x7f1fd820d240;
+  co_varnames = varnames_0x7f1fd820d240;
+  co_names = names_0x7f1fd820d240;
+  co_cellvars = cellvars_0x7f1fd820d240;
+  co_freevars = freevars_0x7f1fd820d240;
+}
+
+let bc_0x7f1fd820d190 = CODE [
+  LOAD_CONST 1;
+  RETURN_VALUE ;
+]
+
+let consts_0x7f1fd820d190 = [
+  PYTYP(createNone());
+  PYTYP(createInt 1);
+]
+
+let varnames_0x7f1fd820d190 = [
+]
+
+let names_0x7f1fd820d190 = [
+]
+
+let cellvars_0x7f1fd820d190 = [
+]
+
+let freevars_0x7f1fd820d190 = [
+]
+
+let co_0x7f1fd820d190 = {
+  co_code = bc_0x7f1fd820d190;
+  co_consts = consts_0x7f1fd820d190;
+  co_varnames = varnames_0x7f1fd820d190;
+  co_names = names_0x7f1fd820d190;
+  co_cellvars = cellvars_0x7f1fd820d190;
+  co_freevars = freevars_0x7f1fd820d190;
+}
+
+let bc_0x7f1fd820d0e0 = CODE [
+  LOAD_FAST 0;
+  LOAD_CONST 1;
+  COMPARE_OP 1;
+  POP_JUMP_IF_FALSE 12;
+  LOAD_CONST 1;
+  RETURN_VALUE ;
+  LOAD_FAST 0;
+  LOAD_DEREF 0;
+  LOAD_FAST 0;
+  LOAD_CONST 2;
+  BINARY_SUBTRACT ;
+  CALL_FUNCTION 1;
+  BINARY_ADD ;
+  RETURN_VALUE ;
+]
+
+let consts_0x7f1fd820d0e0 = [
+  PYTYP(createNone());
+  PYTYP(createInt 0);
+  PYTYP(createInt 1);
+]
+
+let varnames_0x7f1fd820d0e0 = [
+  "x";
+]
+
+let names_0x7f1fd820d0e0 = [
+]
+
+let cellvars_0x7f1fd820d0e0 = [
+]
+
+let freevars_0x7f1fd820d0e0 = [
+  "test_recursive";
+]
+
+let co_0x7f1fd820d0e0 = {
+  co_code = bc_0x7f1fd820d0e0;
+  co_consts = consts_0x7f1fd820d0e0;
+  co_varnames = varnames_0x7f1fd820d0e0;
+  co_names = names_0x7f1fd820d0e0;
+  co_cellvars = cellvars_0x7f1fd820d0e0;
+  co_freevars = freevars_0x7f1fd820d0e0;
+}
+
+let bc_0x7f1fd8200f50 = CODE [
+  LOAD_FAST 0;
+  LOAD_FAST 1;
+  LOAD_FAST 2;
+  BUILD_TUPLE 3;
+  RETURN_VALUE ;
+]
+
+let consts_0x7f1fd8200f50 = [
+  PYTYP(createNone());
+]
+
+let varnames_0x7f1fd8200f50 = [
+  "x";
+  "y";
+  "z";
+]
+
+let names_0x7f1fd8200f50 = [
+]
+
+let cellvars_0x7f1fd8200f50 = [
+]
+
+let freevars_0x7f1fd8200f50 = [
+]
+
+let co_0x7f1fd8200f50 = {
+  co_code = bc_0x7f1fd8200f50;
+  co_consts = consts_0x7f1fd8200f50;
+  co_varnames = varnames_0x7f1fd8200f50;
+  co_names = names_0x7f1fd8200f50;
+  co_cellvars = cellvars_0x7f1fd8200f50;
+  co_freevars = freevars_0x7f1fd8200f50;
+}
+
+let bc_0x7f1fd8200df0 = CODE [
+  LOAD_CONST 1;
+  RETURN_VALUE ;
+]
+
+let consts_0x7f1fd8200df0 = [
+  PYTYP(createNone());
+  PYTYP(createInt 1);
+]
+
+let varnames_0x7f1fd8200df0 = [
+]
+
+let names_0x7f1fd8200df0 = [
+]
+
+let cellvars_0x7f1fd8200df0 = [
+]
+
+let freevars_0x7f1fd8200df0 = [
+]
+
+let co_0x7f1fd8200df0 = {
+  co_code = bc_0x7f1fd8200df0;
+  co_consts = consts_0x7f1fd8200df0;
+  co_varnames = varnames_0x7f1fd8200df0;
+  co_names = names_0x7f1fd8200df0;
+  co_cellvars = cellvars_0x7f1fd8200df0;
+  co_freevars = freevars_0x7f1fd8200df0;
+}
+
+let consts_0x7f1fd820d2f0 = [
+  PYTYP(createString "Tests for calling/defining functions
+    ");
+  CODEOBJECT(co_0x7f1fd8200df0);
+  PYTYP(createString "top_level.<locals>.test_function_def_with_no_params");
+  CODEOBJECT(co_0x7f1fd8200f50);
+  PYTYP(createString "top_level.<locals>.test_function_def_with_params");
+  CODEOBJECT(co_0x7f1fd820d0e0);
+  PYTYP(createString "top_level.<locals>.test_recursive");
+  CODEOBJECT(co_0x7f1fd820d190);
+  PYTYP(createString "top_level.<locals>.test_function_to_be_called");
+  CODEOBJECT(co_0x7f1fd820d240);
+  PYTYP(createString "top_level.<locals>.test_closure");
   PYTYP(createInt 1);
   PYTYP(createInt 2);
   PYTYP(createInt 3);
-  PYTYP(createInt 4);
   PYTYP(createInt 5);
-  PYTYP(createInt 6);
-  PYTYP(createInt 7);
-  PYTYP(createInt 8);
-  PYTYP(createInt 9);
-  PYTYP(createInt (-1));
-  PYTYP(createInt (-2));
-  PYTYP(createInt 0);
-  PYTYP(createInt 15);
-  PYTYP(createInt (-10));
 ]
 
-let varnames_0x7fec7faa69d0 = [
-  "l2";
-  "x1";
-  "x2";
-  "x3";
-  "x4";
-  "x5";
-  "x6";
-  "x7";
-  "x8";
-]
-
-let names_0x7fec7faa69d0 = [
-]
-
-let co_0x7fec7faa69d0 = {
-  co_code = bc_0x7fec7faa69d0;
-  co_consts = consts_0x7fec7faa69d0;
-  co_varnames = varnames_0x7fec7faa69d0;
-  co_names = names_0x7fec7faa69d0
-}
-
-let consts_0x7fec7faa6a80 = [
-  PYTYP(createString "Test cases for Binary operations
-    ");
-  CODEOBJECT(co_0x7fec7faa69d0);
-  PYTYP(createString "top_level.<locals>.test_BINARY_SUBSCR_SLICES");
-]
-
-let varnames_0x7fec7faa6a80 = [
-  "test_BINARY_SUBSCR_SLICES";
+let varnames_0x7f1fd820d2f0 = [
+  "test_function_def_with_no_params";
+  "test_function_def_with_params";
+  "test_closure";
   "result";
 ]
 
-let names_0x7fec7faa6a80 = [
+let names_0x7f1fd820d2f0 = [
 ]
 
-let co_0x7fec7faa6a80 = {
-  co_code = bc_0x7fec7faa6a80;
-  co_consts = consts_0x7fec7faa6a80;
-  co_varnames = varnames_0x7fec7faa6a80;
-  co_names = names_0x7fec7faa6a80
+let cellvars_0x7f1fd820d2f0 = [
+  "test_function_to_be_called";
+  "test_recursive";
+]
+
+let freevars_0x7f1fd820d2f0 = [
+]
+
+let co_0x7f1fd820d2f0 = {
+  co_code = bc_0x7f1fd820d2f0;
+  co_consts = consts_0x7f1fd820d2f0;
+  co_varnames = varnames_0x7f1fd820d2f0;
+  co_names = names_0x7f1fd820d2f0;
+  co_cellvars = cellvars_0x7f1fd820d2f0;
+  co_freevars = freevars_0x7f1fd820d2f0;
 }
 
-let virt_m, res = runCode_returnVM co_0x7fec7faa6a80
+let virt_m, res = runCode_returnVM co_0x7f1fd820d2f0
 let print_program_state = IO.print_string (print_program_state virt_m res)

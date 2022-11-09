@@ -65,7 +65,12 @@ and print_codeObj (co: codeObj): All.ML string =
       ("[" ^ (List.fold_right (fun a b -> a ^ "," ^ b) (co.co_varnames) "]")) in
   let names_string = Printf.sprintf "NAMES:%s" 
       ("[" ^ (List.fold_right (fun a b ->  a ^ "," ^ b) (co.co_names) "]")) in
-  Printf.sprintf "[%s, %s, %s]" constansts_string varnames_string names_string
+  let cellvars_string = Printf.sprintf "CELLVARS:%s" 
+      ("[" ^ (List.fold_right (fun a b ->  a ^ "," ^ b) (co.co_cellvars) "]")) in
+  let freevars_string = Printf.sprintf "FREEVARS:%s" 
+      ("[" ^ (List.fold_right (fun a b ->  a ^ "," ^ b) (co.co_freevars) "]")) in
+  Printf.sprintf "[%s, %s, %s, %s, %s]" constansts_string varnames_string
+                                        names_string cellvars_string freevars_string
 
 and print_program_state (state: vm) (result: pyObj): All.ML string = 
   let result_string = Printf.sprintf "RESULT:%s" (print_pyObj result) in
@@ -288,7 +293,7 @@ let get_slice l start stop (step: int{step <> 0}) =
 (*----------------------------------------------------------*)
 
 (* Helper functions to create objects of builtin type *)
-let emptyMap: Map.t string pyObj  = Map.const (ERR("UNDEFINED"))
+let emptyMap: Map.t string pyObj  = Map.const (ERR("UNDEFINED NAME"))
 
 (* Err raised when the interprter conduct an undefined behavior *)
 let undefinedBehavior s =  ERR (String.concat "" ["INTERPRTER UNDEFINED BEHAVIOR "; s])

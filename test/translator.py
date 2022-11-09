@@ -39,6 +39,22 @@ class Translator:
             varnames += f'  \"{v}\";\n'
         return (varnames+"]\n")  
 
+    def get_fstar_cellvars(self) -> str:
+        """ Gets ready to print code object cellvars of self.code_obj
+        """
+        cellvars = f'let cellvars_{self.co_id} = [\n'
+        for v in self.code_obj.co_cellvars:
+            cellvars += f'  \"{v}\";\n'
+        return (cellvars+"]\n")  
+    
+    def get_fstar_freevars(self) -> str:
+        """ Gets ready to print code object freevars of self.code_obj
+        """
+        freevars = f'let freevars_{self.co_id} = [\n'
+        for v in self.code_obj.co_freevars:
+            freevars += f'  \"{v}\";\n'
+        return (freevars+"]\n")  
+    
     def add_cls_cons(self, x) -> str:
         """ Wraps a python object by its py* object constructor
         """
@@ -86,16 +102,25 @@ class Translator:
         consts = self.get_fstar_consts()
         varnames = self.get_fstar_varnames()
         names = self.get_fstar_names()
+        cellvars = self.get_fstar_cellvars()
+        freevars = self.get_fstar_freevars()
         fstar_codeObj = (
             f'let co_{self.co_id} = '
             '{\n'
             f'  co_code = bc_{self.co_id};\n'
             f'  co_consts = consts_{self.co_id};\n'
             f'  co_varnames = varnames_{self.co_id};\n'
-            f'  co_names = names_{self.co_id}\n'
+            f'  co_names = names_{self.co_id};\n'
+            f'  co_cellvars = cellvars_{self.co_id};\n'
+            f'  co_freevars = freevars_{self.co_id};\n'
             '}\n'
         )
-        return f'{bytecode}\n{consts}\n{varnames}\n{names}\n{fstar_codeObj}'
+        result = (
+            f'{bytecode}\n{consts}\n{varnames}\n{names}\n{cellvars}\n'
+            f'{freevars}\n{fstar_codeObj}'
+        )
+        
+        return result    
                 
     def write_fstar_code_to_file(self, filename):
         """Writes the code to filename

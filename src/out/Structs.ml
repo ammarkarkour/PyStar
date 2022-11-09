@@ -40,6 +40,9 @@ type opcode =
   | LOAD_GLOBAL of Prims.nat 
   | LOAD_FAST of Prims.nat 
   | STORE_FAST of Prims.nat 
+  | LOAD_CLOSURE of Prims.nat 
+  | LOAD_DEREF of Prims.nat 
+  | STORE_DEREF of Prims.nat 
   | RETURN_VALUE 
   | CALL_FUNCTION of Prims.nat 
   | MAKE_FUNCTION of Prims.nat 
@@ -191,6 +194,21 @@ let (uu___is_STORE_FAST : opcode -> Prims.bool) =
     match projectee with | STORE_FAST _0 -> true | uu___ -> false
 let (__proj__STORE_FAST__item___0 : opcode -> Prims.nat) =
   fun projectee -> match projectee with | STORE_FAST _0 -> _0
+let (uu___is_LOAD_CLOSURE : opcode -> Prims.bool) =
+  fun projectee ->
+    match projectee with | LOAD_CLOSURE _0 -> true | uu___ -> false
+let (__proj__LOAD_CLOSURE__item___0 : opcode -> Prims.nat) =
+  fun projectee -> match projectee with | LOAD_CLOSURE _0 -> _0
+let (uu___is_LOAD_DEREF : opcode -> Prims.bool) =
+  fun projectee ->
+    match projectee with | LOAD_DEREF _0 -> true | uu___ -> false
+let (__proj__LOAD_DEREF__item___0 : opcode -> Prims.nat) =
+  fun projectee -> match projectee with | LOAD_DEREF _0 -> _0
+let (uu___is_STORE_DEREF : opcode -> Prims.bool) =
+  fun projectee ->
+    match projectee with | STORE_DEREF _0 -> true | uu___ -> false
+let (__proj__STORE_DEREF__item___0 : opcode -> Prims.nat) =
+  fun projectee -> match projectee with | STORE_DEREF _0 -> _0
 let (uu___is_RETURN_VALUE : opcode -> Prims.bool) =
   fun projectee ->
     match projectee with | RETURN_VALUE -> true | uu___ -> false
@@ -264,7 +282,9 @@ and codeObj =
   co_code: bytecode ;
   co_consts: pyObj Prims.list ;
   co_varnames: Prims.string Prims.list ;
-  co_names: Prims.string Prims.list }
+  co_names: Prims.string Prims.list ;
+  co_cellvars: Prims.string Prims.list ;
+  co_freevars: Prims.string Prims.list }
 and frameObj =
   {
   dataStack: pyObj Prims.list ;
@@ -274,12 +294,14 @@ and frameObj =
   f_localplus: pyObj Prims.list ;
   f_globals: (Prims.string, pyObj) FStar_Map.t ;
   f_locals: (Prims.string, pyObj) FStar_Map.t ;
+  f_cells: (Prims.string, pyObj) FStar_Map.t ;
   f_idCount: Prims.nat ;
   f_usedIds: (hashable, Prims.nat) FStar_Map.t }
 and functionObj =
   {
   func_Code: pyObj ;
   func_globals: (Prims.string, pyObj) FStar_Map.t ;
+  func_cells: (Prims.string, pyObj) FStar_Map.t ;
   func_name: pyObj ;
   func_closure: pyObj ;
   func_defaults: pyObj }
@@ -390,96 +412,124 @@ let (__proj__ERR__item___0 : pyObj -> Prims.string) =
 let (__proj__MkcodeObj__item__co_code : codeObj -> bytecode) =
   fun projectee ->
     match projectee with
-    | { co_code; co_consts; co_varnames; co_names;_} -> co_code
+    | { co_code; co_consts; co_varnames; co_names; co_cellvars;
+        co_freevars;_} -> co_code
 let (__proj__MkcodeObj__item__co_consts : codeObj -> pyObj Prims.list) =
   fun projectee ->
     match projectee with
-    | { co_code; co_consts; co_varnames; co_names;_} -> co_consts
+    | { co_code; co_consts; co_varnames; co_names; co_cellvars;
+        co_freevars;_} -> co_consts
 let (__proj__MkcodeObj__item__co_varnames :
   codeObj -> Prims.string Prims.list) =
   fun projectee ->
     match projectee with
-    | { co_code; co_consts; co_varnames; co_names;_} -> co_varnames
+    | { co_code; co_consts; co_varnames; co_names; co_cellvars;
+        co_freevars;_} -> co_varnames
 let (__proj__MkcodeObj__item__co_names : codeObj -> Prims.string Prims.list)
   =
   fun projectee ->
     match projectee with
-    | { co_code; co_consts; co_varnames; co_names;_} -> co_names
+    | { co_code; co_consts; co_varnames; co_names; co_cellvars;
+        co_freevars;_} -> co_names
+let (__proj__MkcodeObj__item__co_cellvars :
+  codeObj -> Prims.string Prims.list) =
+  fun projectee ->
+    match projectee with
+    | { co_code; co_consts; co_varnames; co_names; co_cellvars;
+        co_freevars;_} -> co_cellvars
+let (__proj__MkcodeObj__item__co_freevars :
+  codeObj -> Prims.string Prims.list) =
+  fun projectee ->
+    match projectee with
+    | { co_code; co_consts; co_varnames; co_names; co_cellvars;
+        co_freevars;_} -> co_freevars
 let (__proj__MkframeObj__item__dataStack : frameObj -> pyObj Prims.list) =
   fun projectee ->
     match projectee with
     | { dataStack; blockStack; fCode; pc; f_localplus; f_globals; f_locals;
-        f_idCount; f_usedIds;_} -> dataStack
+        f_cells; f_idCount; f_usedIds;_} -> dataStack
 let (__proj__MkframeObj__item__blockStack : frameObj -> blockObj Prims.list)
   =
   fun projectee ->
     match projectee with
     | { dataStack; blockStack; fCode; pc; f_localplus; f_globals; f_locals;
-        f_idCount; f_usedIds;_} -> blockStack
+        f_cells; f_idCount; f_usedIds;_} -> blockStack
 let (__proj__MkframeObj__item__fCode : frameObj -> codeObj) =
   fun projectee ->
     match projectee with
     | { dataStack; blockStack; fCode; pc; f_localplus; f_globals; f_locals;
-        f_idCount; f_usedIds;_} -> fCode
+        f_cells; f_idCount; f_usedIds;_} -> fCode
 let (__proj__MkframeObj__item__pc : frameObj -> Prims.nat) =
   fun projectee ->
     match projectee with
     | { dataStack; blockStack; fCode; pc; f_localplus; f_globals; f_locals;
-        f_idCount; f_usedIds;_} -> pc
+        f_cells; f_idCount; f_usedIds;_} -> pc
 let (__proj__MkframeObj__item__f_localplus : frameObj -> pyObj Prims.list) =
   fun projectee ->
     match projectee with
     | { dataStack; blockStack; fCode; pc; f_localplus; f_globals; f_locals;
-        f_idCount; f_usedIds;_} -> f_localplus
+        f_cells; f_idCount; f_usedIds;_} -> f_localplus
 let (__proj__MkframeObj__item__f_globals :
   frameObj -> (Prims.string, pyObj) FStar_Map.t) =
   fun projectee ->
     match projectee with
     | { dataStack; blockStack; fCode; pc; f_localplus; f_globals; f_locals;
-        f_idCount; f_usedIds;_} -> f_globals
+        f_cells; f_idCount; f_usedIds;_} -> f_globals
 let (__proj__MkframeObj__item__f_locals :
   frameObj -> (Prims.string, pyObj) FStar_Map.t) =
   fun projectee ->
     match projectee with
     | { dataStack; blockStack; fCode; pc; f_localplus; f_globals; f_locals;
-        f_idCount; f_usedIds;_} -> f_locals
+        f_cells; f_idCount; f_usedIds;_} -> f_locals
+let (__proj__MkframeObj__item__f_cells :
+  frameObj -> (Prims.string, pyObj) FStar_Map.t) =
+  fun projectee ->
+    match projectee with
+    | { dataStack; blockStack; fCode; pc; f_localplus; f_globals; f_locals;
+        f_cells; f_idCount; f_usedIds;_} -> f_cells
 let (__proj__MkframeObj__item__f_idCount : frameObj -> Prims.nat) =
   fun projectee ->
     match projectee with
     | { dataStack; blockStack; fCode; pc; f_localplus; f_globals; f_locals;
-        f_idCount; f_usedIds;_} -> f_idCount
+        f_cells; f_idCount; f_usedIds;_} -> f_idCount
 let (__proj__MkframeObj__item__f_usedIds :
   frameObj -> (hashable, Prims.nat) FStar_Map.t) =
   fun projectee ->
     match projectee with
     | { dataStack; blockStack; fCode; pc; f_localplus; f_globals; f_locals;
-        f_idCount; f_usedIds;_} -> f_usedIds
+        f_cells; f_idCount; f_usedIds;_} -> f_usedIds
 let (__proj__MkfunctionObj__item__func_Code : functionObj -> pyObj) =
   fun projectee ->
     match projectee with
-    | { func_Code; func_globals; func_name; func_closure; func_defaults;_} ->
-        func_Code
+    | { func_Code; func_globals; func_cells; func_name; func_closure;
+        func_defaults;_} -> func_Code
 let (__proj__MkfunctionObj__item__func_globals :
   functionObj -> (Prims.string, pyObj) FStar_Map.t) =
   fun projectee ->
     match projectee with
-    | { func_Code; func_globals; func_name; func_closure; func_defaults;_} ->
-        func_globals
+    | { func_Code; func_globals; func_cells; func_name; func_closure;
+        func_defaults;_} -> func_globals
+let (__proj__MkfunctionObj__item__func_cells :
+  functionObj -> (Prims.string, pyObj) FStar_Map.t) =
+  fun projectee ->
+    match projectee with
+    | { func_Code; func_globals; func_cells; func_name; func_closure;
+        func_defaults;_} -> func_cells
 let (__proj__MkfunctionObj__item__func_name : functionObj -> pyObj) =
   fun projectee ->
     match projectee with
-    | { func_Code; func_globals; func_name; func_closure; func_defaults;_} ->
-        func_name
+    | { func_Code; func_globals; func_cells; func_name; func_closure;
+        func_defaults;_} -> func_name
 let (__proj__MkfunctionObj__item__func_closure : functionObj -> pyObj) =
   fun projectee ->
     match projectee with
-    | { func_Code; func_globals; func_name; func_closure; func_defaults;_} ->
-        func_closure
+    | { func_Code; func_globals; func_cells; func_name; func_closure;
+        func_defaults;_} -> func_closure
 let (__proj__MkfunctionObj__item__func_defaults : functionObj -> pyObj) =
   fun projectee ->
     match projectee with
-    | { func_Code; func_globals; func_name; func_closure; func_defaults;_} ->
-        func_defaults
+    | { func_Code; func_globals; func_cells; func_name; func_closure;
+        func_defaults;_} -> func_defaults
 let (__proj__MkblockObj__item__b_type : blockObj -> opcode) =
   fun projectee ->
     match projectee with | { b_type; b_level; b_handler;_} -> b_type
