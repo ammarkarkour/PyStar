@@ -42,7 +42,7 @@ let createString (s: string) =
         } in obj)) in
       
   let mul =
-    Map.upd emptyMap "__mul__" 
+    Map.upd iter "__mul__" 
       (BINFUNBLT (fun (a, b) -> 
         match (a.value, b.value) with
         | STRING(s), BOOL(b) -> if b then STRING s else STRING ""

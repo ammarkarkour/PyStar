@@ -41,8 +41,39 @@ let createDict (vkl: list (cls * cls)) =
   | false -> createException "Key is not hashable"
   | true ->
 
+    let iter =
+    Map.upd emptyMap "__iter__" 
+      (UNFUNOBJ (fun a ->
+        (* returns a tuple, (next element, new list_iterator) *)
+        let next = 
+          Map.upd (a.methods) "__next__"
+          (UNFUNBLT (fun b -> 
+            match (Map.sel (b.fields) "keys") with
+            | PYTYP(obj) ->
+              (match obj.value with
+              | LIST([]) -> EXCEPTION "StopIteration"
+              | LIST(x::l) ->
+                let newDictIter = {
+                  name = "dict_iterator";
+                  pid = 0;
+                  value = LIST(l);
+                  fields = Map.upd (b.fields) "keys" (PYTYP(createList l));
+                  methods = b.methods
+                } in
+                TUPLE ([x; newDictIter])
+              | _ -> EXCEPTION "Dict_Iterator Error")
+            | _ -> EXCEPTION "DICT_Iterator Error")) in
+
+        let obj: cls = {
+          name = "dict_iterator";
+          pid = a.pid;
+          value = a.value;
+          fields = a.fields;
+          methods = next
+        } in obj)) in
+        
     let contains =
-      Map.upd emptyMap "__contains__" 
+      Map.upd iter "__contains__" 
         (BINFUNBLT (fun (a, b) ->
           (match Map.sel (a.fields) "keys" with
           | PYTYP(objakl) ->

@@ -31,8 +31,51 @@ let (createDict : (Structs.cls * Structs.cls) Prims.list -> Structs.cls) =
     | (vl, kl) ->
         if is_hashable kl
         then
+          let iter =
+            FStar_Map.upd Utils.emptyMap "__iter__"
+              (Structs.UNFUNOBJ
+                 (fun a ->
+                    let next =
+                      FStar_Map.upd a.Structs.methods "__next__"
+                        (Structs.UNFUNBLT
+                           (fun b ->
+                              match FStar_Map.sel b.Structs.fields "keys"
+                              with
+                              | Structs.PYTYP obj ->
+                                  (match obj.Structs.value with
+                                   | Structs.LIST [] ->
+                                       Structs.EXCEPTION "StopIteration"
+                                   | Structs.LIST (x::l) ->
+                                       let newDictIter =
+                                         {
+                                           Structs.name = "dict_iterator";
+                                           Structs.pid = Prims.int_zero;
+                                           Structs.value = (Structs.LIST l);
+                                           Structs.fields =
+                                             (FStar_Map.upd b.Structs.fields
+                                                "keys"
+                                                (Structs.PYTYP
+                                                   (PyList.createList l)));
+                                           Structs.methods =
+                                             (b.Structs.methods)
+                                         } in
+                                       Structs.TUPLE [x; newDictIter]
+                                   | uu___1 ->
+                                       Structs.EXCEPTION
+                                         "Dict_Iterator Error")
+                              | uu___1 ->
+                                  Structs.EXCEPTION "DICT_Iterator Error")) in
+                    let obj =
+                      {
+                        Structs.name = "dict_iterator";
+                        Structs.pid = (a.Structs.pid);
+                        Structs.value = (a.Structs.value);
+                        Structs.fields = (a.Structs.fields);
+                        Structs.methods = next
+                      } in
+                    obj)) in
           let contains =
-            FStar_Map.upd Utils.emptyMap "__contains__"
+            FStar_Map.upd iter "__contains__"
               (Structs.BINFUNBLT
                  (fun uu___1 ->
                     match uu___1 with

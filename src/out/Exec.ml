@@ -773,10 +773,10 @@ let (for_iter :
              | Structs.UNFUNBLT f ->
                  (match f obj with
                   | Structs.TUPLE (x::newIter::[]) ->
-                      (pc, ((Structs.PYTYP x) :: (Structs.PYTYP newIter) ::
-                        newDataStack))
+                      ((pc + Prims.int_one), ((Structs.PYTYP x) ::
+                        (Structs.PYTYP newIter) :: newDataStack))
                   | Structs.EXCEPTION "StopIteration" ->
-                      ((pc + i), newDataStack)
+                      (((pc + i) + Prims.int_one), newDataStack)
                   | uu___ ->
                       (pc, ((Utils.undefinedBehavior "for_iter_1") ::
                         newDataStack)))
@@ -2094,6 +2094,41 @@ let rec (execBytecode : Structs.frameObj -> Structs.frameObj) =
                          Structs.f_idCount = (frame.Structs.f_idCount);
                          Structs.f_usedIds = (frame.Structs.f_usedIds)
                        })
+              | Structs.COMPARE_OP i ->
+                  if
+                    (FStar_List_Tot_Base.length frame.Structs.dataStack) >=
+                      (Prims.of_int (2))
+                  then
+                    let newDataStack = compare_op i frame.Structs.dataStack in
+                    execBytecode
+                      {
+                        Structs.dataStack = newDataStack;
+                        Structs.blockStack = (frame.Structs.blockStack);
+                        Structs.fCode = (frame.Structs.fCode);
+                        Structs.pc = (frame.Structs.pc + Prims.int_one);
+                        Structs.f_localplus = (frame.Structs.f_localplus);
+                        Structs.f_globals = (frame.Structs.f_globals);
+                        Structs.f_locals = (frame.Structs.f_locals);
+                        Structs.f_cells = (frame.Structs.f_cells);
+                        Structs.f_idCount = (frame.Structs.f_idCount);
+                        Structs.f_usedIds = (frame.Structs.f_usedIds)
+                      }
+                  else
+                    (let newDataStack =
+                       [Utils.undefinedBehavior "COMPARE_OP"] in
+                     execBytecode
+                       {
+                         Structs.dataStack = newDataStack;
+                         Structs.blockStack = (frame.Structs.blockStack);
+                         Structs.fCode = (frame.Structs.fCode);
+                         Structs.pc = (frame.Structs.pc + Prims.int_one);
+                         Structs.f_localplus = (frame.Structs.f_localplus);
+                         Structs.f_globals = (frame.Structs.f_globals);
+                         Structs.f_locals = (frame.Structs.f_locals);
+                         Structs.f_cells = (frame.Structs.f_cells);
+                         Structs.f_idCount = (frame.Structs.f_idCount);
+                         Structs.f_usedIds = (frame.Structs.f_usedIds)
+                       })
               | Structs.JUMP_FORWARD i ->
                   execBytecode
                     {
@@ -2302,20 +2337,17 @@ let rec (execBytecode : Structs.frameObj -> Structs.frameObj) =
                          }
                    | uu___3 ->
                        let uu___4 =
-                         for_iter i frame.Structs.pc frame.Structs.dataStack in
+                         for_iter (i / (Prims.of_int (2))) frame.Structs.pc
+                           frame.Structs.dataStack in
                        (match uu___4 with
                         | (newPc, newDataStack) ->
-                            let newPc1 =
-                              if frame.Structs.pc = newPc
-                              then newPc + Prims.int_one
-                              else newPc in
                             execBytecode
                               {
                                 Structs.dataStack = newDataStack;
                                 Structs.blockStack =
                                   (frame.Structs.blockStack);
                                 Structs.fCode = (frame.Structs.fCode);
-                                Structs.pc = newPc1;
+                                Structs.pc = newPc;
                                 Structs.f_localplus =
                                   (frame.Structs.f_localplus);
                                 Structs.f_globals = (frame.Structs.f_globals);

@@ -46,7 +46,7 @@ let (createString : Prims.string -> Structs.cls) =
                 } in
               obj)) in
     let mul =
-      FStar_Map.upd Utils.emptyMap "__mul__"
+      FStar_Map.upd iter "__mul__"
         (Structs.BINFUNBLT
            (fun uu___ ->
               match uu___ with

@@ -597,8 +597,8 @@ let for_iter i pc dataStack  =
     (match (Map.sel (obj.methods) "__next__") with
     | UNFUNBLT f -> 
       (match f obj with
-      | TUPLE [x; newIter] -> (pc, PYTYP(x)::PYTYP(newIter)::newDataStack)
-      | EXCEPTION "StopIteration" -> (pc+i, newDataStack)
+      | TUPLE [x; newIter] -> (pc+1, PYTYP(x)::PYTYP(newIter)::newDataStack)
+      | EXCEPTION "StopIteration" -> (pc+i+1, newDataStack)
       | _ -> (pc, (undefinedBehavior "for_iter_1")::newDataStack))
     |  ERR s -> (pc, PYTYP(createException "Not iteratable object" )::newDataStack)
     | _ -> (pc, (undefinedBehavior "for_iter_2")::newDataStack))
@@ -1050,7 +1050,16 @@ let rec execBytecode frame  =
       | true -> 
         let newDataStack = build_const_key_map i (frame.dataStack) in
           execBytecode ({frame with dataStack = newDataStack; pc = frame.pc+1}))
-        
+
+    | COMPARE_OP(i) ->
+      (match length frame.dataStack >= 2 with
+      | false ->
+        let newDataStack = [undefinedBehavior "COMPARE_OP"] in
+          execBytecode ({frame with dataStack = newDataStack; pc = frame.pc+1})
+      | true ->
+        let newDataStack = compare_op i (frame.dataStack) in
+          execBytecode ({frame with dataStack = newDataStack; pc = frame.pc+1}))
+      
     | JUMP_FORWARD(i) -> execBytecode ({frame with pc = frame.pc + (i/2) + 1})
     
     | POP_JUMP_IF_TRUE(i) ->
@@ -1103,8 +1112,7 @@ let rec execBytecode frame  =
         let newDataStack = [undefinedBehavior "FOR_ITER"] in
           execBytecode ({frame with dataStack = newDataStack; pc = frame.pc+1})
       | _ ->
-        let newPc, newDataStack = for_iter i (frame.pc) (frame.dataStack) in
-        let newPc = if frame.pc=newPc then newPc+1 else newPc in
+        let newPc, newDataStack = for_iter (i/2) (frame.pc) (frame.dataStack) in
           execBytecode ({frame with dataStack = newDataStack; pc = newPc}))
     
     | JUMP_ABSOLUTE(i) -> execBytecode ({frame with pc = i/2})
