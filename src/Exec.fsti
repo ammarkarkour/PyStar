@@ -18,6 +18,7 @@ val makeFrame: vm -> codeObj -> list pyObj
 val call_function:  (i:nat)
                  -> (l:list pyObj {length l > i}) 
                  -> nat
+                 -> Map.t string pyObj
                  -> Map.t hashable nat -> Tot (list pyObj)
 
 val pop_top: (l:list pyObj {Cons? l}) -> Tot (l2:list pyObj {l2 == tail l})
@@ -115,6 +116,7 @@ val load_closure: (n: option string) -> Map.t string pyObj
                                      -> list pyObj -> Tot (list pyObj)
 
 val load_deref: (n: option string) -> Map.t string pyObj 
+                                   -> Map.t string pyObj
                                    -> Map.t string pyObj 
                                    -> list pyObj -> Tot (list pyObj)
 

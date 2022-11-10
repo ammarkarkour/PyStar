@@ -118,9 +118,9 @@ let (createInt : Prims.int -> Structs.cls) =
               | (a, b) ->
                   (match ((a.Structs.value), (b.Structs.value)) with
                    | (Structs.INT a1, Structs.INT b1) ->
-                       Structs.INT (b1 - a1)
+                       Structs.INT (a1 - b1)
                    | (Structs.INT a1, Structs.BOOL b1) ->
-                       Structs.INT (if b1 then Prims.int_one + a1 else a1)
+                       Structs.INT (if b1 then a1 - Prims.int_one else a1)
                    | uu___1 -> Structs.EXCEPTION "Int Error"))) in
     let lt =
       FStar_Map.upd sub "__lt__"

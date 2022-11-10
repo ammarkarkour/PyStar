@@ -47,54 +47,57 @@ let (call_function :
   Prims.nat ->
     Structs.pyObj Prims.list ->
       Prims.nat ->
-        (Structs.hashable, Prims.nat) FStar_Map.t -> Structs.pyObj Prims.list)
+        (Prims.string, Structs.pyObj) FStar_Map.t ->
+          (Structs.hashable, Prims.nat) FStar_Map.t ->
+            Structs.pyObj Prims.list)
   =
   fun i ->
     fun dataStack ->
       fun id ->
-        fun usedIds ->
-          let uu___ = FStar_List_Tot_Base.splitAt i dataStack in
-          match uu___ with
-          | (args, newDataStack) ->
-              let localplus = FStar_List_Tot_Base.rev args in
-              let uu___1 =
-                FStar_List_Tot_Base.splitAt Prims.int_one newDataStack in
-              (match uu___1 with
-               | (code, restStack) ->
-                   (match FStar_List_Tot_Base.nth code Prims.int_zero with
-                    | FStar_Pervasives_Native.None ->
-                        (Utils.undefinedBehavior "call_function_1") ::
-                        dataStack
-                    | FStar_Pervasives_Native.Some (Structs.PYTYP obj) ->
-                        (match obj.Structs.value with
-                         | Structs.FUNCTION func ->
-                             (match func.Structs.func_Code with
-                              | Structs.CODEOBJECT co ->
-                                  let newFrame =
-                                    {
-                                      Structs.dataStack = [];
-                                      Structs.blockStack = [];
-                                      Structs.fCode = co;
-                                      Structs.pc = Prims.int_zero;
-                                      Structs.f_localplus = localplus;
-                                      Structs.f_globals =
-                                        (func.Structs.func_globals);
-                                      Structs.f_locals =
-                                        (func.Structs.func_cells);
-                                      Structs.f_cells =
-                                        (func.Structs.func_cells);
-                                      Structs.f_idCount = id;
-                                      Structs.f_usedIds = usedIds
-                                    } in
-                                  (Structs.FRAMEOBJECT newFrame) :: restStack
-                              | uu___2 ->
-                                  (Utils.undefinedBehavior "call_function_2")
-                                  :: dataStack)
-                         | uu___2 ->
-                             (Utils.undefinedBehavior "call_function_3") ::
-                             dataStack)
-                    | uu___2 -> (Utils.undefinedBehavior "call_function_4")
-                        :: dataStack))
+        fun f_cells ->
+          fun usedIds ->
+            let uu___ = FStar_List_Tot_Base.splitAt i dataStack in
+            match uu___ with
+            | (args, newDataStack) ->
+                let localplus = FStar_List_Tot_Base.rev args in
+                let uu___1 =
+                  FStar_List_Tot_Base.splitAt Prims.int_one newDataStack in
+                (match uu___1 with
+                 | (code, restStack) ->
+                     (match FStar_List_Tot_Base.nth code Prims.int_zero with
+                      | FStar_Pervasives_Native.None ->
+                          (Utils.undefinedBehavior "call_function_1") ::
+                          dataStack
+                      | FStar_Pervasives_Native.Some (Structs.PYTYP obj) ->
+                          (match obj.Structs.value with
+                           | Structs.FUNCTION func ->
+                               (match func.Structs.func_Code with
+                                | Structs.CODEOBJECT co ->
+                                    let newFrame =
+                                      {
+                                        Structs.dataStack = [];
+                                        Structs.blockStack = [];
+                                        Structs.fCode = co;
+                                        Structs.pc = Prims.int_zero;
+                                        Structs.f_localplus = localplus;
+                                        Structs.f_globals =
+                                          (func.Structs.func_globals);
+                                        Structs.f_locals = Utils.emptyMap;
+                                        Structs.f_cells = f_cells;
+                                        Structs.f_idCount = id;
+                                        Structs.f_usedIds = usedIds
+                                      } in
+                                    (Structs.FRAMEOBJECT newFrame) ::
+                                      restStack
+                                | uu___2 ->
+                                    (Utils.undefinedBehavior
+                                       "call_function_2")
+                                    :: dataStack)
+                           | uu___2 ->
+                               (Utils.undefinedBehavior "call_function_3") ::
+                               dataStack)
+                      | uu___2 -> (Utils.undefinedBehavior "call_function_4")
+                          :: dataStack))
 let (pop_top : Structs.pyObj Prims.list -> Structs.pyObj Prims.list) =
   fun datastack -> FStar_List_Tot_Base.tail datastack
 
@@ -511,26 +514,6 @@ let (compare_op :
                  | uu___2 when uu___2 = (Prims.of_int (9)) -> "__nis__"
                  | uu___2 -> "error" in
                (match op with
-                | "__eq__" ->
-                    (match (tos11, tos) with
-                     | (Structs.PYTYP obj1, Structs.PYTYP obj2) ->
-                         (match FStar_Map.sel obj1.Structs.methods op with
-                          | Structs.BINFUNBLT f ->
-                              (match f (obj1, obj2) with
-                               | Structs.BOOL b ->
-                                   (Structs.PYTYP (PyBool.createBool b)) ::
-                                   newDataStack
-                               | uu___2 ->
-                                   (Structs.PYTYP
-                                      (PyBool.createBool
-                                         (obj1.Structs.pid = obj2.Structs.pid)))
-                                   :: newDataStack)
-                          | uu___2 ->
-                              (Utils.undefinedBehavior "compare_op_eq_1") ::
-                              newDataStack)
-                     | (uu___2, uu___3) ->
-                         (Utils.undefinedBehavior "compare_op_eq_2") ::
-                         newDataStack)
                 | "__ne__" ->
                     (match (tos11, tos) with
                      | (Structs.PYTYP obj1, Structs.PYTYP obj2) ->
@@ -583,7 +566,7 @@ let (compare_op :
                           | Structs.ERR s ->
                               (Structs.PYTYP
                                  (PyException.createException
-                                    "__pos__ is not defined"))
+                                    (Prims.strcat op "is not defined")))
                               :: newDataStack
                           | uu___3 ->
                               (Utils.undefinedBehavior "compare_op_2") ::
@@ -646,17 +629,17 @@ let (load_name :
             | FStar_Pervasives_Native.None ->
                 (Utils.undefinedBehavior "load_name") :: dataStack
             | FStar_Pervasives_Native.Some name1 ->
-                if FStar_Map.contains f_locals name1
-                then (FStar_Map.sel f_locals name1) :: dataStack
-                else
-                  if FStar_Map.contains f_globals name1
-                  then (FStar_Map.sel f_globals name1) :: dataStack
-                  else
-                    (Structs.PYTYP
-                       (PyException.createException
-                          (Prims.strcat "name: "
-                             (Prims.strcat name1 "is not defined"))))
-                    :: dataStack
+                (match FStar_Map.sel f_locals name1 with
+                 | Structs.ERR s ->
+                     (match FStar_Map.sel f_globals name1 with
+                      | Structs.ERR s1 ->
+                          (Structs.PYTYP
+                             (PyException.createException
+                                (Prims.strcat "name: "
+                                   (Prims.strcat name1 "is not defined"))))
+                          :: dataStack
+                      | obj -> obj :: dataStack)
+                 | obj -> obj :: dataStack)
 let (pop_jump_if_true :
   Prims.nat ->
     Prims.nat ->
@@ -805,14 +788,14 @@ let (load_global :
           | FStar_Pervasives_Native.None ->
               (Utils.undefinedBehavior "load_global") :: dataStack
           | FStar_Pervasives_Native.Some name1 ->
-              if FStar_Map.contains f_globals name1
-              then (FStar_Map.sel f_globals name1) :: dataStack
-              else
-                (Structs.PYTYP
-                   (PyException.createException
-                      (Prims.strcat "name: "
-                         (Prims.strcat name1 "is not defined"))))
-                :: dataStack
+              (match FStar_Map.sel f_globals name1 with
+               | Structs.ERR s ->
+                   (Structs.PYTYP
+                      (PyException.createException
+                         (Prims.strcat "name: "
+                            (Prims.strcat name1 "is not defined"))))
+                   :: dataStack
+               | obj -> obj :: dataStack)
 let (load_fast :
   Prims.nat ->
     Structs.pyObj Prims.list ->
@@ -861,42 +844,43 @@ let (load_closure :
           | FStar_Pervasives_Native.None ->
               (Utils.undefinedBehavior "load_closure") :: dataStack
           | FStar_Pervasives_Native.Some name1 ->
-              if FStar_Map.contains f_locals name1
-              then (FStar_Map.sel f_locals name1) :: dataStack
-              else
-                if FStar_Map.contains f_globals name1
-                then (FStar_Map.sel f_globals name1) :: dataStack
-                else
-                  (Structs.PYTYP
-                     (PyException.createException
-                        (Prims.strcat "name: "
-                           (Prims.strcat name1 "is not defined"))))
-                  :: dataStack
+              (match FStar_Map.sel f_locals name1 with
+               | Structs.ERR s ->
+                   (match FStar_Map.sel f_globals name1 with
+                    | Structs.ERR s1 ->
+                        (Structs.PYTYP (PyNone.createNone ())) :: dataStack
+                    | obj -> obj :: dataStack)
+               | obj -> obj :: dataStack)
 let (load_deref :
   Prims.string FStar_Pervasives_Native.option ->
     (Prims.string, Structs.pyObj) FStar_Map.t ->
       (Prims.string, Structs.pyObj) FStar_Map.t ->
-        Structs.pyObj Prims.list -> Structs.pyObj Prims.list)
+        (Prims.string, Structs.pyObj) FStar_Map.t ->
+          Structs.pyObj Prims.list -> Structs.pyObj Prims.list)
   =
   fun name ->
     fun f_locals ->
-      fun f_globals ->
-        fun dataStack ->
-          match name with
-          | FStar_Pervasives_Native.None ->
-              (Utils.undefinedBehavior "load_deref") :: dataStack
-          | FStar_Pervasives_Native.Some name1 ->
-              if FStar_Map.contains f_locals name1
-              then (FStar_Map.sel f_locals name1) :: dataStack
-              else
-                if FStar_Map.contains f_globals name1
-                then (FStar_Map.sel f_globals name1) :: dataStack
-                else
-                  (Structs.PYTYP
-                     (PyException.createException
-                        (Prims.strcat "name: "
-                           (Prims.strcat name1 "is not defined"))))
-                  :: dataStack
+      fun f_cells ->
+        fun f_globals ->
+          fun dataStack ->
+            match name with
+            | FStar_Pervasives_Native.None ->
+                (Utils.undefinedBehavior "load_deref") :: dataStack
+            | FStar_Pervasives_Native.Some name1 ->
+                (match FStar_Map.sel f_locals name1 with
+                 | Structs.ERR s ->
+                     (match FStar_Map.sel f_cells name1 with
+                      | Structs.ERR s1 ->
+                          (match FStar_Map.sel f_globals name1 with
+                           | Structs.ERR s2 ->
+                               (Structs.PYTYP
+                                  (PyException.createException
+                                     (Prims.strcat "name: "
+                                        (Prims.strcat name1 " is not defined"))))
+                               :: dataStack
+                           | obj -> obj :: dataStack)
+                      | obj -> obj :: dataStack)
+                 | obj -> obj :: dataStack)
 let (store_deref :
   Prims.string FStar_Pervasives_Native.option ->
     (Prims.string, Structs.pyObj) FStar_Map.t ->
@@ -915,12 +899,18 @@ let (store_deref :
               (f_locals, f_cells, ((Utils.undefinedBehavior "store_deref") ::
                 dataStack))
           | FStar_Pervasives_Native.Some name1 ->
-              let uu___ = FStar_List_Tot_Base.splitAt Prims.int_one dataStack in
-              (match uu___ with
-               | (uu___1, newDataStack) ->
-                   let newLocals = FStar_Map.upd f_locals name1 tos in
-                   let newCells = FStar_Map.upd f_cells name1 tos in
-                   (newLocals, newCells, newDataStack))
+              (match tos with
+               | Structs.ERR s ->
+                   (f_locals, f_cells, ((Utils.undefinedBehavior s) ::
+                     dataStack))
+               | uu___ ->
+                   let uu___1 =
+                     FStar_List_Tot_Base.splitAt Prims.int_one dataStack in
+                   (match uu___1 with
+                    | (uu___2, newDataStack) ->
+                        let newLocals = FStar_Map.upd f_locals name1 tos in
+                        let newCells = FStar_Map.upd f_cells name1 tos in
+                        (newLocals, newCells, newDataStack)))
 let (make_function :
   Prims.nat ->
     (Prims.string, Structs.pyObj) FStar_Map.t ->
@@ -954,8 +944,7 @@ let (make_function :
                               match FStar_List_Tot_Base.hd newDataStack with
                               | Structs.PYTYP obj ->
                                   (match obj.Structs.value with
-                                   | Structs.TUPLE t ->
-                                       Structs.PYTYP (PyTuple.createTuple t)
+                                   | Structs.TUPLE t -> Structs.PYTYP obj
                                    | uu___2 ->
                                        Utils.undefinedBehavior
                                          "make_function_func_closure_2")
@@ -969,8 +958,7 @@ let (make_function :
                               match FStar_List_Tot_Base.hd newDataStack with
                               | Structs.PYTYP obj ->
                                   (match obj.Structs.value with
-                                   | Structs.TUPLE t ->
-                                       Structs.PYTYP (PyTuple.createTuple t)
+                                   | Structs.TUPLE t -> Structs.PYTYP obj
                                    | uu___2 ->
                                        Utils.undefinedBehavior
                                          "make_function_func_defaults_2")
@@ -1068,7 +1056,8 @@ let rec (execBytecode : Structs.frameObj -> Structs.frameObj) =
                   then
                     let newDataStack =
                       call_function i frame.Structs.dataStack
-                        frame.Structs.f_idCount frame.Structs.f_usedIds in
+                        frame.Structs.f_idCount frame.Structs.f_cells
+                        frame.Structs.f_usedIds in
                     {
                       Structs.dataStack = newDataStack;
                       Structs.blockStack = (frame.Structs.blockStack);
@@ -2530,7 +2519,8 @@ let rec (execBytecode : Structs.frameObj -> Structs.frameObj) =
                         (i - len_co_cellvars) in
                   let newDataStack =
                     load_deref name frame.Structs.f_locals
-                      frame.Structs.f_globals frame.Structs.dataStack in
+                      frame.Structs.f_cells frame.Structs.f_globals
+                      frame.Structs.dataStack in
                   execBytecode
                     {
                       Structs.dataStack = newDataStack;

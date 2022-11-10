@@ -80,8 +80,8 @@ let createInt (v:int) =
     Map.upd add "__sub__" 
       (BINFUNBLT (fun (a, b) -> 
         match (a.value, b.value) with 
-        | INT(a), INT(b) -> INT (b - a) 
-        | INT(a), BOOL(b) -> INT (if b then 1+a else a)
+        | INT(a), INT(b) -> INT (a - b) 
+        | INT(a), BOOL(b) -> INT (if b then a-1 else a)
         | _ -> EXCEPTION "Int Error")) in
 
   let lt =

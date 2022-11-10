@@ -9,9 +9,9 @@ def top_level():
         return x, y, z
     
     def test_recursive(x):
-        if x <= 0:
-            return 0    
-        return x + test_recursive(x-1)
+        if x == 0:
+            return x
+        return 1 + test_recursive(x-1)
         
     def test_function_to_be_called():
         return 1
@@ -19,11 +19,10 @@ def top_level():
     def test_closure():
         return test_function_to_be_called()
     
-    
     result = [
         test_function_def_with_no_params(),
         test_function_def_with_params(1,2,3),
-        test_recursive(5),
+        test_recursive(10),
         test_closure()
     ]
     

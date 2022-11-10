@@ -48,7 +48,7 @@ let makeFrame virM code localplus global_names local_names cell_objects =
   Req:
   Ens:
 *)
-let call_function i dataStack id usedIds =
+let call_function i dataStack id f_cells usedIds =
   let args, newDataStack = splitAt i dataStack in
   let localplus = rev args in
   let code, restStack = splitAt 1 newDataStack in
@@ -66,8 +66,8 @@ let call_function i dataStack id usedIds =
             f_localplus = localplus;
             pc = 0;
             f_globals = func.func_globals;
-            f_locals = func.func_cells;
-            f_cells = func.func_cells;
+            f_locals = emptyMap;
+            f_cells = f_cells;
             f_idCount = id;
             f_usedIds = usedIds
           } in (FRAMEOBJECT newFrame)::restStack)
@@ -446,16 +446,17 @@ let compare_op i dataStack  =
       | 9 -> "__nis__"
       | _ -> "error" in
     match op with
-    | "__eq__" ->
-      (match (tos1, tos) with
-      | PYTYP(obj1), PYTYP(obj2) -> 
-        (match (Map.sel (obj1.methods) op) with
-        | BINFUNBLT f -> 
-          (match f(obj1, obj2) with
-            | BOOL b -> PYTYP(createBool b )::newDataStack
-            | _ -> PYTYP(createBool (obj1.pid = obj2.pid) )::newDataStack)
-        | _ -> (undefinedBehavior "compare_op_eq_1")::newDataStack)
-      | _,_ -> (undefinedBehavior "compare_op_eq_2")::newDataStack)
+    // | "__eq__" ->
+    //   (match (tos1, tos) with
+    //   | PYTYP(obj1), PYTYP(obj2) -> 
+    //     (match (Map.sel (obj1.methods) op) with
+    //     | BINFUNBLT f -> 
+    //       (match f(obj1, obj2) with
+    //         | BOOL b -> PYTYP(createBool b )::newDataStack
+    //         | _ -> PYTYP(createBool (obj1.pid = obj2.pid) )::newDataStack)
+    //     | ERR s -> PYTYP(createException "__eq___ is not defined" )::newDataStack
+    //     | _ -> (undefinedBehavior "compare_op_eq_1")::newDataStack)
+    //   | _,_ -> (undefinedBehavior "compare_op_eq_2")::newDataStack)
     | "__ne__" ->
       (match (tos1, tos) with
       | PYTYP(obj1), PYTYP(obj2) -> 
@@ -480,7 +481,7 @@ let compare_op i dataStack  =
       | PYTYP(obj1), PYTYP(obj2) -> 
         (match (Map.sel (obj1.methods) op) with
         | BINFUNBLT f -> PYTYP(builtinsToPyObj (f(obj1, obj2)) )::newDataStack
-        | ERR s -> PYTYP(createException "__pos__ is not defined" )::newDataStack
+        | ERR s -> PYTYP(createException (op ^ "is not defined" ))::newDataStack
         | _ -> (undefinedBehavior "compare_op_2")::newDataStack)
       | _, _ -> (undefinedBehavior "compare_op_3")::newDataStack
 
@@ -522,12 +523,12 @@ let load_name i names f_locals f_globals dataStack  =
   match name with
   | None -> (undefinedBehavior "load_name")::dataStack
   | Some name ->
-    (match Map.contains f_locals name with
-    | true -> (Map.sel f_locals name)::dataStack 
-    | false ->
-      (match Map.contains f_globals name with
-       | true -> (Map.sel f_globals name)::dataStack
-       | false -> PYTYP(createException ("name: " ^ name ^ "is not defined"))::dataStack))
+    (match Map.sel f_locals name with
+    | ERR s ->
+      (match Map.sel f_globals name with
+      | ERR s -> PYTYP(createException ("name: " ^ name ^ "is not defined"))::dataStack
+      | obj -> obj::dataStack)   
+    | obj -> obj::dataStack)
 
 (*
   Req: 
@@ -613,9 +614,9 @@ let load_global i names f_globals dataStack  =
   match name with
   | None -> (undefinedBehavior "load_global")::dataStack
   | Some name ->
-    match Map.contains f_globals name with
-    | true -> (Map.sel f_globals name)::dataStack
-    | false -> PYTYP(createException ("name: " ^ name ^ "is not defined") )::dataStack
+    (match Map.sel f_globals name with
+    | ERR s -> PYTYP(createException ("name: " ^ name ^ "is not defined"))::dataStack
+    | obj -> obj::dataStack)
 
 (*
   Req: (length(localplus) > i)
@@ -654,30 +655,33 @@ let load_closure name f_locals f_globals dataStack  =
   match name with
   | None -> (undefinedBehavior "load_closure")::dataStack
   | Some name ->
-    (match Map.contains f_locals name with
-    | true -> (Map.sel f_locals name)::dataStack 
-    | false ->
-      (match Map.contains f_globals name with
-       | true -> (Map.sel f_globals name)::dataStack
-       | false -> PYTYP(createException ("name: " ^ name ^ "is not defined"))::dataStack))
-
+    (match Map.sel f_locals name with
+    | ERR s ->
+      (match Map.sel f_globals name with
+      | ERR s -> PYTYP(createNone())::dataStack
+      | obj -> obj::dataStack)   
+    | obj -> obj::dataStack)
+    
 (*
   Req: 
   Ens: res = f_locals[name]::datastack  ||
        res = f_globals[name]::datastack ||
        res = exception::datastack
 *)
-let load_deref name f_locals f_globals dataStack  =
+let load_deref name f_locals f_cells f_globals dataStack  =
   match name with
   | None -> (undefinedBehavior "load_deref")::dataStack
   | Some name ->
-    (match Map.contains f_locals name with
-    | true -> (Map.sel f_locals name)::dataStack 
-    | false ->
-      (match Map.contains f_globals name with
-       | true -> (Map.sel f_globals name)::dataStack
-       | false -> PYTYP(createException ("name: " ^ name ^ "is not defined"))::dataStack))
-
+    (match Map.sel f_locals name with
+    | ERR s ->
+      (match Map.sel f_cells name with
+      | ERR s ->
+        (match Map.sel f_globals name with
+        | ERR s -> PYTYP(createException ("name: " ^ name ^ " is not defined"))::dataStack
+        | obj -> obj::dataStack)
+      | obj -> obj::dataStack)   
+    | obj -> obj::dataStack)
+      
 (*
   Req: 
   Ens: res = (f_locals with f_locals[name] = tos, datastack[1:])
@@ -686,12 +690,15 @@ let store_deref name f_locals f_cells dataStack =
   let tos = hd dataStack in
   match name with
   | None -> (f_locals, f_cells, (undefinedBehavior "store_deref")::dataStack)
-  | Some name ->
-    let _, newDataStack = splitAt 1 dataStack in 
-    let newLocals = Map.upd f_locals name tos in
-    let newCells = Map.upd f_cells name tos in
-    (newLocals, newCells, newDataStack)
-    
+  | Some name ->       
+    (match tos with
+    | ERR s -> (f_locals, f_cells, (undefinedBehavior s)::dataStack)
+    | _ ->
+      let _, newDataStack = splitAt 1 dataStack in
+      let newLocals = Map.upd f_locals name tos in
+      let newCells = Map.upd f_cells name tos in
+      (newLocals, newCells, newDataStack))
+
 (*
   Req:
   Ens:
@@ -713,7 +720,7 @@ let make_function flags globs cells dataStack =
          (match hd newDataStack with
           | PYTYP(obj) ->
             (match obj.value with
-             | TUPLE(t) -> PYTYP(createTuple t)
+             | TUPLE(t) -> PYTYP(obj)
              | _ -> undefinedBehavior "make_function_func_closure_2")
           | _ -> undefinedBehavior "make_function_func_closure_3") else PYTYP(createNone());
 
@@ -722,7 +729,7 @@ let make_function flags globs cells dataStack =
          (match hd newDataStack with
           | PYTYP(obj) ->
             (match obj.value with
-             | TUPLE(t) -> PYTYP(createTuple t)
+             | TUPLE(t) -> PYTYP(obj)
              | _ -> undefinedBehavior "make_function_func_defaults_2")
           | _ -> undefinedBehavior "make_function_func_defaults_3") else PYTYP(createNone());
     }) in
@@ -789,7 +796,7 @@ let rec execBytecode frame  =
           ({frame with dataStack = newDataStack})
       | true ->
         let newDataStack = call_function i frame.dataStack
-                         frame.f_idCount frame.f_usedIds in
+                         frame.f_idCount (frame.f_cells) frame.f_usedIds in
         ({frame with dataStack = newDataStack}))
     
     | NOP -> execBytecode ({frame with pc = frame.pc+1})
@@ -1165,7 +1172,7 @@ let rec execBytecode frame  =
         | true -> nth frame.fCode.co_cellvars i
         | false -> nth frame.fCode.co_freevars (i - len_co_cellvars) in
       let newDataStack = load_deref name (frame.f_locals)
-                         (frame.f_globals) (frame.dataStack) in
+                        (frame.f_cells) (frame.f_globals) (frame.dataStack) in
           execBytecode ({frame with dataStack = newDataStack; pc = frame.pc+1})
     
     | STORE_DEREF(i) ->
