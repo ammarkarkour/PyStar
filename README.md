@@ -1,18 +1,43 @@
-# Py*: Formalization of Python's Verifiable Bytecode and Virtual Machine in F* 
+# Typing and Semantics Formalization of Python's Execution Machinery
 
-## Project Descritopn
-When writing a program, it is very important that the written code matches its intended behavior/specifications. Similar to all other programs, implementations of Programming Languages also need to match their own specifications, because it is hard to trust any program that is written in a language that does not do that. To address this problem, Computer Scientists formalize programming languages using Formal Semantics rules that describe how each expression in the language should behave. These rules help in guiding the implementation process and eliminate ambiguities. When it comes to Python, Even though Python has become one of the most important programming languages, it still lacks a formal implementation as well as several formal verification methods. The reason for that is that Python was not designed with formal rigor, which made it lack full formal semantics that is needed to formalize and describe the behavior of its complex functionalities. Since formalizing Python Source code is hard because of its many complex functionalities and inconsistencies, a more realistic and attainable goal is to formalize Python’s Bytecode. This way we focus on a smaller set of instructions that have simpler functionalities, which makes it easier to formalize and formally verify code written in it. Moreover, in the end, Bytecode is what is being executed by the interpreter. In this project, we define formal semantics rules for Python's Bytecode, and embed them in the theorem prover F*. Following that we extract efficient executable OCaml code of our embedding, which could be used to interpret Python Bytecode and to find bugs in other interpreters.
+  
 
 ## Dependencies:
-- Install F* from [here](https://www.fstar-lang.org/#download)
-- Install OCaml from [here](https://ocaml.org/)
 
-## Setting up the Makefile
-- Change the variable FSTAR_HOME in the Makefile to path of fstar in your local machine
+- Install F* and OCaml from [here](https://github.com/FStarLang/FStar/blob/master/INSTALL.md) (using opam)
+
+- Python 3.8 or 3.9
+
+## Directory Structure
+
+- README
+- **src**
+	- Structs.fst  --- Conatins types and structures
+	- Exec.fst	  --- Contains the main execution loop 
+	- Exec.fsti	  --- Contains typing rules and formal verification 
+	- **out**		  --- Contains compiled and executable OCaml files of Py*
+	- MAKEFILE
+	-  ....
+	
+- **test**
+	- autotest.py	--- Handles autmatic running of the code
+	- config.py 		--- configuration file to set testing flags
+	- translator.py		--- A class that translates cpython's codeobject to py* codeobject
+	- test.py			--- Use this class to define your own test cases 
+	- **hand_crafted** --- Contains correctness test cases
+	- **performance** --- Conatains performance test cases
+  
+
+## To Re-Compile
+**The code is already compiled, so you can directly use it.**  
+
+If you are facing any issues and want to recompile:
+	- Go to src ($ cd src)
+	- Write make ($ make)
 
 ## To Run Test Cases:
-- Write your test case in the file **Test.fst**
-- Run ($ make all), which translates your code from fstar to ocaml
-- In the file **Test.ml** add this line at the end: **let (p : unit) = print_string(Utils.print_pyObj res)**
-- Run ($ make ocaml), which compiles the ocaml files
-- Run ($ ./out/Test.exe), which executes the test case in the test file and prints the result
+
+- Go to test ($ cd test)
+- Use autotest.py to run the tests. E.g., **($ python3 autotest.py hand_crafted/variables.py Test)**
+	-  **hand_crafted/variables.py**: Test file.
+	-  **Test**: Name of the generated f* file

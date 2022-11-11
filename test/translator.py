@@ -19,8 +19,9 @@ class Translator:
         bytecode = f'let bc_{self.co_id} = CODE [\n'
         for instr in self.instructions:
             opname = instr.opname
-            arg = instr.arg if instr.arg != None else ""
-            bytecode += f'  {opname} {arg};\n'
+            if opname != "EXTENDED_ARG":  # remove later
+                arg = instr.arg if instr.arg != None else ""
+                bytecode += f'  {opname} {arg};\n'
         return (bytecode+"]\n")
     
     def get_fstar_names(self) -> str:

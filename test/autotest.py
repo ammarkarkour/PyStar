@@ -1,6 +1,5 @@
 import os
 import sys
-import ast
 import time
 import subprocess
 from config import Config
@@ -94,10 +93,6 @@ if __name__=="__main__":
     # compile ocaml file code into executable (Makefile through terminal)
     correct_exec = os.system(f'cd ../src && make autotestCompile NAME={output_file}')
     assert(correct_exec == 0)
-
-    # run the executable (Measure time to test performance) (Makefile through terminal)
-    if Config.PERFROMANCE_TEST:
-        t0 = time.time()
     
     result = subprocess.run([f'./{output_file}.exe'], stdout=subprocess.PIPE, 
                             shell=True, cwd='/home/akarkour/pystar/PyStar/src/out')
@@ -106,3 +101,11 @@ if __name__=="__main__":
     # compare states
     state_str = parse_state_str(result.stdout.decode("utf-8"))
     print(state_str)
+    
+    # run the executable (Measure time to test performance) (Makefile through terminal)
+    if Config.PERFROMANCE_TEST:
+        # sys.setrecursionlimit(20000) # uncment if you wanna run recursion test
+        t0 = time.time()
+        exec(code_obj.co_consts[0])
+        t1 = time.time()
+        print(t1 - t0)

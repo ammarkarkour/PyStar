@@ -5,6 +5,5 @@ def top_level():
     def test_while_loop(n):
         while n > 0:
             n -= 1
-        return n
                 
-    return test_while_loop(1000)
+    return test_while_loop(1000000)
