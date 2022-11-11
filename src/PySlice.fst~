@@ -1,0 +1,13 @@
+module PySlice
+
+open Structs
+open Utils
+
+let createSlice(start, stop, step) =
+  let obj: cls = {
+    name = "slice";
+    pid = 0;
+    value = SLICE start stop step;
+    fields = emptyMap;
+    methods = emptyMap
+  } in obj
