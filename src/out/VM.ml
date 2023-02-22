@@ -9,8 +9,11 @@ let (runCode : Structs.codeObj -> Structs.pyObj) =
         Structs.idCount = Prims.int_one;
         Structs.usedIds = Utils.idsMap
       } in
+    let global_names =
+      FStar_Map.upd Utils.emptyMap "AssertionError"
+        (Structs.PYTYP (PyException.createException "AssertionError")) in
     let uu___ =
-      Exec.makeFrame initVM code [] Utils.emptyMap Utils.emptyMap
+      Exec.makeFrame initVM code [] global_names Utils.emptyMap
         Utils.emptyMap in
     match uu___ with
     | (virM, globalFrame) ->
@@ -26,8 +29,11 @@ let (runCode_returnVM : Structs.codeObj -> (Structs.vm * Structs.pyObj)) =
         Structs.idCount = Prims.int_one;
         Structs.usedIds = Utils.idsMap
       } in
+    let global_names =
+      FStar_Map.upd Utils.emptyMap "AssertionError"
+        (Structs.PYTYP (PyException.createException "AssertionError")) in
     let uu___ =
-      Exec.makeFrame initVM code [] Utils.emptyMap Utils.emptyMap
+      Exec.makeFrame initVM code [] global_names Utils.emptyMap
         Utils.emptyMap in
     match uu___ with
     | (virM, globalFrame) ->

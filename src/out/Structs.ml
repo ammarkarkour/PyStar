@@ -44,6 +44,7 @@ type opcode =
   | LOAD_DEREF of Prims.nat 
   | STORE_DEREF of Prims.nat 
   | RETURN_VALUE 
+  | RAISE_VARARGS of Prims.nat 
   | CALL_FUNCTION of Prims.nat 
   | MAKE_FUNCTION of Prims.nat 
   | BUILD_SLICE of Prims.nat 
@@ -212,6 +213,11 @@ let (__proj__STORE_DEREF__item___0 : opcode -> Prims.nat) =
 let (uu___is_RETURN_VALUE : opcode -> Prims.bool) =
   fun projectee ->
     match projectee with | RETURN_VALUE -> true | uu___ -> false
+let (uu___is_RAISE_VARARGS : opcode -> Prims.bool) =
+  fun projectee ->
+    match projectee with | RAISE_VARARGS _0 -> true | uu___ -> false
+let (__proj__RAISE_VARARGS__item___0 : opcode -> Prims.nat) =
+  fun projectee -> match projectee with | RAISE_VARARGS _0 -> _0
 let (uu___is_CALL_FUNCTION : opcode -> Prims.bool) =
   fun projectee ->
     match projectee with | CALL_FUNCTION _0 -> true | uu___ -> false

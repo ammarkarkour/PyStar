@@ -18,8 +18,11 @@ let runCode code =
     usedIds = idsMap
   } in
   (* Create global frame to run the byte code instructions in it *)
+  (* Add exception AssertionError to global names *)
+  let global_names = Map.upd emptyMap "AssertionError" 
+    (PYTYP (createException "AssertionError")) in
   let  virM, globalFrame = 
-    makeFrame initVM code [] emptyMap emptyMap emptyMap in
+    makeFrame initVM code [] global_names emptyMap emptyMap in
   let  finalVM, result = runFrame virM globalFrame in
   result
 
@@ -33,7 +36,10 @@ let runCode_returnVM code =
     usedIds = idsMap
   } in
   (* Create global frame to run the byte code instructions in it *)
+  (* Add exception AssertionError to global names *)
+  let global_names = Map.upd emptyMap "AssertionError" 
+    (PYTYP (createException "AssertionError")) in
   let  virM, globalFrame =
-    makeFrame initVM code [] emptyMap emptyMap emptyMap in
+    makeFrame initVM code [] global_names emptyMap emptyMap in
   let  finalVM, result = runFrame virM globalFrame in
   finalVM, result

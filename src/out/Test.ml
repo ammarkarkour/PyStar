@@ -1,48 +1,38 @@
 open Prims
-let (bc_0x7f6b9ce4b9d0 : Structs.bytecode) =
+let (bc_0x7f5b70673710 : Structs.bytecode) =
   Structs.CODE
     [Structs.LOAD_CONST Prims.int_one;
-    Structs.STORE_FAST Prims.int_zero;
     Structs.LOAD_CONST (Prims.of_int (2));
-    Structs.STORE_FAST Prims.int_one;
+    Structs.COMPARE_OP (Prims.of_int (2));
+    Structs.POP_JUMP_IF_TRUE (Prims.of_int (12));
+    Structs.LOAD_GLOBAL Prims.int_zero;
+    Structs.RAISE_VARARGS Prims.int_one;
     Structs.LOAD_CONST (Prims.of_int (3));
-    Structs.STORE_FAST (Prims.of_int (2));
-    Structs.LOAD_FAST Prims.int_zero;
-    Structs.LOAD_FAST Prims.int_one;
-    Structs.BINARY_MULTIPLY;
-    Structs.LOAD_CONST (Prims.of_int (3));
-    Structs.BINARY_MULTIPLY;
-    Structs.STORE_FAST (Prims.of_int (3));
-    Structs.LOAD_FAST Prims.int_zero;
-    Structs.LOAD_FAST Prims.int_one;
-    Structs.LOAD_FAST (Prims.of_int (2));
-    Structs.LOAD_FAST (Prims.of_int (3));
-    Structs.BUILD_TUPLE (Prims.of_int (4));
     Structs.RETURN_VALUE]
-let (consts_0x7f6b9ce4b9d0 : Structs.pyObj Prims.list) =
-  [Structs.PYTYP (PyNone.createNone ());
+let (consts_0x7f5b70673710 : Structs.pyObj Prims.list) =
+  [Structs.PYTYP
+     (PyString.createString "Write your own code inside this function\n    ");
   Structs.PYTYP (PyInt.createInt Prims.int_one);
   Structs.PYTYP (PyInt.createInt (Prims.of_int (2)));
-  Structs.PYTYP (PyInt.createInt (Prims.of_int (3)))]
-let (varnames_0x7f6b9ce4b9d0 : Prims.string Prims.list) =
-  ["var_1"; "var_2"; "var_3"; "var_4"]
-let names_0x7f6b9ce4b9d0 : 'uuuuu . unit -> 'uuuuu Prims.list =
+  Structs.PYTYP (PyNone.createNone ())]
+let varnames_0x7f5b70673710 : 'uuuuu . unit -> 'uuuuu Prims.list =
   fun uu___ -> []
-let cellvars_0x7f6b9ce4b9d0 : 'uuuuu . unit -> 'uuuuu Prims.list =
+let (names_0x7f5b70673710 : Prims.string Prims.list) = ["AssertionError"]
+let cellvars_0x7f5b70673710 : 'uuuuu . unit -> 'uuuuu Prims.list =
   fun uu___ -> []
-let freevars_0x7f6b9ce4b9d0 : 'uuuuu . unit -> 'uuuuu Prims.list =
+let freevars_0x7f5b70673710 : 'uuuuu . unit -> 'uuuuu Prims.list =
   fun uu___ -> []
-let (co_0x7f6b9ce4b9d0 : Structs.codeObj) =
+let (co_0x7f5b70673710 : Structs.codeObj) =
   {
-    Structs.co_code = bc_0x7f6b9ce4b9d0;
-    Structs.co_consts = consts_0x7f6b9ce4b9d0;
-    Structs.co_varnames = varnames_0x7f6b9ce4b9d0;
-    Structs.co_names = (names_0x7f6b9ce4b9d0 ());
-    Structs.co_cellvars = (cellvars_0x7f6b9ce4b9d0 ());
-    Structs.co_freevars = (freevars_0x7f6b9ce4b9d0 ())
+    Structs.co_code = bc_0x7f5b70673710;
+    Structs.co_consts = consts_0x7f5b70673710;
+    Structs.co_varnames = (varnames_0x7f5b70673710 ());
+    Structs.co_names = names_0x7f5b70673710;
+    Structs.co_cellvars = (cellvars_0x7f5b70673710 ());
+    Structs.co_freevars = (freevars_0x7f5b70673710 ())
   }
 let (uu___0 : (Structs.vm * Structs.pyObj)) =
-  VM.runCode_returnVM co_0x7f6b9ce4b9d0
+  VM.runCode_returnVM co_0x7f5b70673710
 let (virt_m : Structs.vm) = match uu___0 with | (virt_m1, res) -> virt_m1
 let (res : Structs.pyObj) = match uu___0 with | (virt_m1, res1) -> res1
 let (print_program_state : unit) =

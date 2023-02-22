@@ -911,6 +911,13 @@ let (store_deref :
                         let newLocals = FStar_Map.upd f_locals name1 tos in
                         let newCells = FStar_Map.upd f_cells name1 tos in
                         (newLocals, newCells, newDataStack)))
+let (raise_varargs :
+  Prims.nat -> Structs.pyObj Prims.list -> Structs.pyObj Prims.list) =
+  fun i ->
+    fun dataStack ->
+      let tos = FStar_List_Tot_Base.hd dataStack in
+      let newDataStack = FStar_List_Tot_Base.tail dataStack in
+      (Structs.ERR "AssertionError") :: newDataStack
 let (make_function :
   Prims.nat ->
     (Prims.string, Structs.pyObj) FStar_Map.t ->
@@ -2573,6 +2580,61 @@ let rec (execBytecode : Structs.frameObj -> Structs.frameObj) =
                   else
                     (let newDataStack =
                        [Utils.undefinedBehavior "STORE_DEREF"] in
+                     execBytecode
+                       {
+                         Structs.dataStack = newDataStack;
+                         Structs.blockStack = (frame.Structs.blockStack);
+                         Structs.fCode = (frame.Structs.fCode);
+                         Structs.pc = (frame.Structs.pc + Prims.int_one);
+                         Structs.f_localplus = (frame.Structs.f_localplus);
+                         Structs.f_globals = (frame.Structs.f_globals);
+                         Structs.f_locals = (frame.Structs.f_locals);
+                         Structs.f_cells = (frame.Structs.f_cells);
+                         Structs.f_idCount = (frame.Structs.f_idCount);
+                         Structs.f_usedIds = (frame.Structs.f_usedIds)
+                       })
+              | Structs.RAISE_VARARGS i ->
+                  if i = Prims.int_one
+                  then
+                    (if
+                       (FStar_List_Tot_Base.length frame.Structs.dataStack) >
+                         Prims.int_zero
+                     then
+                       let newDataStack =
+                         raise_varargs i frame.Structs.dataStack in
+                       execBytecode
+                         {
+                           Structs.dataStack = newDataStack;
+                           Structs.blockStack = (frame.Structs.blockStack);
+                           Structs.fCode = (frame.Structs.fCode);
+                           Structs.pc = (frame.Structs.pc + Prims.int_one);
+                           Structs.f_localplus = (frame.Structs.f_localplus);
+                           Structs.f_globals = (frame.Structs.f_globals);
+                           Structs.f_locals = (frame.Structs.f_locals);
+                           Structs.f_cells = (frame.Structs.f_cells);
+                           Structs.f_idCount = (frame.Structs.f_idCount);
+                           Structs.f_usedIds = (frame.Structs.f_usedIds)
+                         }
+                     else
+                       (let newDataStack =
+                          [Utils.undefinedBehavior "RAISE_VARARGS"] in
+                        execBytecode
+                          {
+                            Structs.dataStack = newDataStack;
+                            Structs.blockStack = (frame.Structs.blockStack);
+                            Structs.fCode = (frame.Structs.fCode);
+                            Structs.pc = (frame.Structs.pc + Prims.int_one);
+                            Structs.f_localplus = (frame.Structs.f_localplus);
+                            Structs.f_globals = (frame.Structs.f_globals);
+                            Structs.f_locals = (frame.Structs.f_locals);
+                            Structs.f_cells = (frame.Structs.f_cells);
+                            Structs.f_idCount = (frame.Structs.f_idCount);
+                            Structs.f_usedIds = (frame.Structs.f_usedIds)
+                          }))
+                  else
+                    (let newDataStack =
+                       [Utils.undefinedBehavior
+                          "RAISE_VARARGS DOES NOT SUPPORT argc != 1"] in
                      execBytecode
                        {
                          Structs.dataStack = newDataStack;

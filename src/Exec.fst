@@ -703,6 +703,16 @@ let store_deref name f_locals f_cells dataStack =
   Req:
   Ens:
 *)
+let raise_varargs i dataStack = 
+  let tos = hd dataStack in
+  let newDataStack = tail dataStack in 
+  (ERR "AssertionError")::newDataStack
+
+
+(*
+  Req:
+  Ens:
+*)
 let make_function flags globs cells dataStack =
   let qualname = hd dataStack in
   let codeobj = nth dataStack 1 in
@@ -1193,6 +1203,20 @@ let rec execBytecode frame  =
                                              pc = frame.pc+1;
                                        f_locals = newLocals;
                                         f_cells = newCells}))
+    
+    | RAISE_VARARGS i ->
+      (match i = 1 with
+      | false ->
+        let newDataStack = [undefinedBehavior "RAISE_VARARGS DOES NOT SUPPORT argc != 1"] in
+          execBytecode ({frame with dataStack = newDataStack; pc = frame.pc+1})
+      | true ->
+        (match length frame.dataStack > 0 with
+        | false ->
+          let newDataStack = [undefinedBehavior "RAISE_VARARGS"] in
+            execBytecode ({frame with dataStack = newDataStack; pc = frame.pc+1})
+        | true ->
+          let newDataStack = raise_varargs i (frame.dataStack) in
+            execBytecode ({frame with dataStack = newDataStack; pc = frame.pc + 1})))
     
     | MAKE_FUNCTION(flags) ->
       (match length frame.dataStack >= 2 with

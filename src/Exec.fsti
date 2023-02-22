@@ -126,7 +126,10 @@ val store_deref: (n: option string) -> Map.t string pyObj
                                     -> Tot (Map.t string pyObj *
                                            Map.t string pyObj *
                                            list pyObj) 
-                              
+
+val raise_varargs: (i: nat) -> (l: list pyObj {Cons? l})
+                          -> Tot (list pyObj)
+
 val make_function: (i:nat) -> (Map.t string pyObj) 
                          -> (Map.t string pyObj)
                          -> (l:list pyObj {if i = 0

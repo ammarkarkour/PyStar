@@ -47,6 +47,7 @@ type opcode =
   | LOAD_DEREF: nat -> opcode
   | STORE_DEREF: nat -> opcode
   | RETURN_VALUE: opcode
+  | RAISE_VARARGS: nat -> opcode
   | CALL_FUNCTION: nat -> opcode
   | MAKE_FUNCTION: nat -> opcode
   | BUILD_SLICE: nat -> opcode

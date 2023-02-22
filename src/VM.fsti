@@ -4,6 +4,7 @@ module VM
 open Utils
 open Structs
 open Exec
+open PyBuiltinObjects 
 (* ---------------- *)
 
 (* Takes in code object and execute it *)

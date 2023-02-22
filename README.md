@@ -41,3 +41,4 @@ If you are facing any issues and want to recompile:
 - Use autotest.py to run the tests. E.g., **($ python3 autotest.py hand_crafted/variables.py Test)**
 	-  **hand_crafted/variables.py**: Test file.
 	-  **Test**: Name of the generated f* file
+- This prints the returned value and the final state of the program. Performance tests will print the execution time of Py* vs cpython
