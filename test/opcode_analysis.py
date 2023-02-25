@@ -1,13 +1,18 @@
-"""
-Note: this is wrong as it only tests the opcodes on the top level function.
-- We need all opcodes, so we need recursive look for opcodes.
-"""
-
-
-
 import dis
 import json
 from glob import glob
+from types import CodeType
+
+
+def get_all_instructions(code_obj):
+    instructions = [dis.get_instructions(code_obj)]
+    
+    for c in code_obj.co_consts:
+        if isinstance(c, CodeType):
+            instructions.extend(get_all_instructions(c))
+    
+    return instructions
+
 
 def analyse_opcode(files_path, supported_operations):
     """
@@ -41,37 +46,42 @@ def analyse_opcode(files_path, supported_operations):
         source_code = f.read()
         f.close()
         
-        # Compile code to get the code object, and disassible it
+        # Compile code to get the code object, and disassimble it
         code_obj = compile(source_code, f_path, 'exec')
-        instructions = dis.get_instructions(code_obj.co_consts[0])
-
+        instructions_list = get_all_instructions(code_obj)
+        
         # f's not supported operations
         f_missing_operations = {} 
         
-        # Sort instructions
-        for instr in instructions:
-            opname = instr.opname
-            
-            if opname not in supported_operations:
-                if opname in f_missing_operations:
-                    f_missing_operations[opname]['num_occurrences'] += 1
+        # classify instructions
+        for instructions in instructions_list:
+            for instr in instructions:
+                opname = instr.opname
                 
-                else:
-                    if opname in missing_operations:
-                        f_missing_operations[opname] = missing_operations[opname]
-                        f_missing_operations[opname]['num_files'] += 1
-                
+                if opname not in supported_operations:
+                    if opname in f_missing_operations:
+                        f_missing_operations[opname]['num_occurrences'] += 1
+                    
                     else:
-                        f_missing_operations[opname] = {
-                            'num_files': 1,
-                            'num_occurrences': 1
-                        }
+                        if opname in missing_operations:
+                            f_missing_operations[opname] = missing_operations[opname]
+                            f_missing_operations[opname]['num_files'] += 1
+                    
+                        else:
+                            f_missing_operations[opname] = {
+                                'num_files': 1,
+                                'num_occurrences': 1
+                            }
         
         # Add f_missing_operations to missing_operations
-        missing_operations.update(f_missing_operations)        
+        missing_operations.update(f_missing_operations)
+    
+    # sort based on occurences
+    ops = sorted(missing_operations.items(),
+                 key=lambda x: x[1]['num_occurrences'],
+                 reverse=True)
 
-    return missing_operations
-
+    return ops
 
 
 """
@@ -81,7 +91,7 @@ supported_operations = []
 
 # analyse
 result_dict = analyse_opcode(
-        '',
+        files_path,
         supported_operations
     )
 
